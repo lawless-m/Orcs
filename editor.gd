@@ -70,6 +70,7 @@ var _note := ""
 var _spawner_mode := false
 var _drag_spawner = null
 var _name_edit: LineEdit
+var _base_cells := -1
 var _note_at := 0
 
 
@@ -93,10 +94,13 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		_save_and_play()
 	elif key == KEY_G:
 		_paint_with = GROUND
+		_spawner_mode = false      # picking a colour means you want to paint
 	elif key == KEY_R:
 		_paint_with = ROCK
+		_spawner_mode = false
 	elif key == KEY_B:
 		_paint_with = BASE
+		_spawner_mode = false
 	elif key >= KEY_1 and key <= KEY_9:
 		_brush = key - KEY_0
 	elif key == KEY_Z and (event as InputEventKey).ctrl_pressed:
@@ -386,9 +390,21 @@ func _add_spawner(world: Vector2) -> void:
 	_refresh_hud("spawn point added")
 
 
+func _count_base() -> void:
+	# cheap enough beside a world rebuild, and far too dear once per frame
+	var n := 0
+	for y in _img.get_height():
+		for x in _img.get_width():
+			var c := _img.get_pixel(x, y)
+			if c.a > 0.5 and c.r > 0.5 and c.b < 0.5:
+				n += 1
+	_base_cells = n
+
+
 func _regen_now() -> void:
 	if _scene == null or _regenerating:
 		return
+	_count_base()
 	_regenerating = true
 	var t := Time.get_ticks_usec()
 	await _scene._on_preview_world_data()
@@ -466,11 +482,12 @@ func _refresh_hud(note := "") -> void:
 	elif Time.get_ticks_msec() - _note_at > 3000:
 		_note = ""
 	var names := {GROUND: "ground", ROCK: "rock", BASE: "base"}
+	var warn := "   NO BASE -- orcs will have nothing to walk to" if _base_cells == 0 else ""
 	var line2 := "spawn points: %d   click place   drag move   right-click remove" % _spawners().size() \
 		if _spawner_mode else "paint: %s   brush: %d" % [names.get(_paint_with, "?"), _brush]
 	_hud.text = "%s%s   %dx%d\n%s   %s\n\n%s" % [
 		_maps[_index]["name"], " *" if _dirty else "",
-		_img.get_width(), _img.get_height(), line2, _note,
+		_img.get_width(), _img.get_height(), line2, _note + warn,
 		LEGEND + ("   N next map (saves)" if _maps.size() > 1 else "")]
 
 
