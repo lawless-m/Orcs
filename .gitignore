@@ -6,3 +6,6 @@ dist/.stage/
 
 # editor safety copies, local only
 *.png.bak
+
+# dropped by pwsh when it runs in this folder
+StartupProfileData-*
