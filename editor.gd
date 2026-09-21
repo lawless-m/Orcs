@@ -8,8 +8,8 @@ extends Node
 ##   F5           save and play this map straight away
 ##   F10          close it
 ##   left drag    paint          right drag   erase to open ground
-##   1 2 3        ground, rock, base
-##   [ ]          brush size
+##   G R B        ground, rock, base
+##   1 - 9        brush size, in cells across
 ##   Ctrl+Z       undo           Ctrl+S       save the PNG
 ##   Ctrl+E       copy the stock maps and sprite sheets to user://reference/
 ##   middle drag  pan            wheel        zoom
@@ -24,7 +24,7 @@ const BASE := Color(1, 0, 0, 1)
 const UNDO_MAX := 30
 const REGEN_DELAY := 0.08
 const LEGEND := """drag paint   right-drag erase   wheel zoom   middle-drag pan
-1 ground   2 rock   3 base   [ ] brush
+G ground   R rock   B base   1-9 brush size
 Ctrl+S save   Ctrl+Z undo   Ctrl+E dump stock maps
 F5 save and play   F11 next map (saves)   F10 close"""
 
@@ -64,16 +64,14 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		_close()
 	elif key == KEY_F5:
 		_save_and_play()
-	elif key == KEY_1:
+	elif key == KEY_G:
 		_paint_with = GROUND
-	elif key == KEY_2:
+	elif key == KEY_R:
 		_paint_with = ROCK
-	elif key == KEY_3:
+	elif key == KEY_B:
 		_paint_with = BASE
-	elif key == KEY_BRACKETLEFT:
-		_brush = maxi(1, _brush - 1)
-	elif key == KEY_BRACKETRIGHT:
-		_brush = mini(16, _brush + 1)
+	elif key >= KEY_1 and key <= KEY_9:
+		_brush = key - KEY_0
 	elif key == KEY_Z and (event as InputEventKey).ctrl_pressed:
 		_undo_once()
 	elif key == KEY_S and (event as InputEventKey).ctrl_pressed:
@@ -83,6 +81,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	else:
 		return
 	_refresh_hud()
+	if _canvas:
+		_canvas.queue_redraw()      # size and material change without the mouse moving
 	get_viewport().set_input_as_handled()
 
 
@@ -216,8 +216,8 @@ func _on_gui_input(event: InputEvent) -> void:
 func _stamp(screen: Vector2) -> void:
 	var cell := _cell_at(screen)
 	var colour := _paint_with if _stroke == 1 else GROUND
-	var r := _brush - 1
-	var rect := Rect2i(cell.x - r, cell.y - r, _brush * 2 - 1, _brush * 2 - 1)
+	var half: int = _brush / 2
+	var rect := Rect2i(cell.x - half, cell.y - half, _brush, _brush)
 	rect = rect.intersection(Rect2i(Vector2i.ZERO, _img.get_size()))
 	if rect.size == Vector2i.ZERO:
 		return
@@ -276,9 +276,9 @@ func _on_draw() -> void:
 			_canvas.draw_line(a, _cell_to_screen(Vector2i(size.x, y)), grid, 1.0)
 
 	var cell := _cell_at(_canvas.get_local_mouse_position())
-	var r := _brush - 1
-	var tl := _cell_to_screen(Vector2i(cell.x - r, cell.y - r))
-	var br := _cell_to_screen(Vector2i(cell.x + r + 1, cell.y + r + 1))
+	var half: int = _brush / 2
+	var tl := _cell_to_screen(Vector2i(cell.x - half, cell.y - half))
+	var br := _cell_to_screen(Vector2i(cell.x - half + _brush, cell.y - half + _brush))
 	_canvas.draw_rect(Rect2(tl, br - tl), Color.WHITE, false, 2.0)
 
 
@@ -289,7 +289,7 @@ func _refresh_hud(note := "") -> void:
 	_hud.text = "%s%s   %dx%d\npaint: %s   brush: %d   %s\n\n%s" % [
 		_maps[_index]["name"], " *" if _dirty else "",
 		_img.get_width(), _img.get_height(),
-		names.get(_paint_with, "?"), _brush * 2 - 1, note, LEGEND]
+		names.get(_paint_with, "?"), _brush, note, LEGEND]
 
 
 # --- undo, save, reference ---------------------------------------------------
