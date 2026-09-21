@@ -2,7 +2,7 @@
 #
 # Most people should just double-click install.bat instead of running this.
 #
-#   powershell -ExecutionPolicy Bypass -File install.ps1 -Editor -Cheats
+#   powershell -ExecutionPolicy Bypass -File install.ps1 -Cheats
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -Uninstall
 #
 # The -ExecutionPolicy is needed because Windows blocks downloaded scripts.
@@ -10,7 +10,6 @@
 # executable, and the loader and your maps go in the save folder.
 param(
     [string]$GamePath,     # skip the search and use this folder
-    [switch]$Editor,       # also install the map painter (F11)
     [switch]$Cheats,       # dev menu, and an Unlock button on every level
     [switch]$Uninstall,
     [switch]$Interactive   # ask instead; this is what install.bat uses
@@ -19,9 +18,9 @@ param(
 if ($Interactive) {
     Write-Output ''
     Write-Output 'Custom maps for "Sir, We Have an Orc Problem".'
+    Write-Output 'Adds a map, and an editor to draw your own with (press F11 in game).'
     Write-Output 'Nothing belonging to the game is changed, and you can undo all of this later.'
     Write-Output ''
-    $Editor = (Read-Host 'Do you want the map editor too, so you can draw your own maps? [y/N]') -match '^\s*[Yy]'
     $Cheats = (Read-Host 'Unlock the new map now, instead of finishing the game first? [y/N]') -match '^\s*[Yy]'
     Write-Output ''
 }
@@ -91,8 +90,9 @@ if ($Uninstall) {
 # to UTF-16 and Set-Content to ANSI, either of which can stop Godot reading it.
 $lines = @()
 if ($Cheats) { $lines += '_custom_features="steam,cheats"', '' }
+$hasEditor = Test-Path (Join-Path $here 'editor.gd')
 $lines += '[autoload]', '', 'ModLoader="*user://mod_loader.gd"'
-if ($Editor) { $lines += 'MapEditor="*user://editor.gd"' }
+if ($hasEditor) { $lines += 'MapEditor="*user://editor.gd"' }
 [System.IO.File]::WriteAllText((Join-Path $game 'override.cfg'),
     ($lines -join "`n") + "`n", (New-Object System.Text.UTF8Encoding $false))
 Write-Output "wrote override.cfg"
@@ -101,16 +101,12 @@ New-Item -ItemType Directory -Path $user -Force | Out-Null
 Copy-Item (Join-Path $here 'mod_loader.gd') $user -Force
 Write-Output "copied mod_loader.gd"
 
-if ($Editor) {
-    $ed = Join-Path $here 'editor.gd'
-    if (Test-Path $ed) {
-        Copy-Item $ed $user -Force
-        Write-Output "copied editor.gd -- press F11 in game"
-    } else {
-        [Console]::Error.WriteLine("-Editor asked for, but editor.gd is not in this folder.")
-        [Console]::Error.WriteLine("It ships with the repository, not the player download:")
-        [Console]::Error.WriteLine("  https://github.com/lawless-m/Orcs")
-    }
+if ($hasEditor) {
+    Copy-Item (Join-Path $here 'editor.gd') $user -Force
+    Write-Output "copied editor.gd -- press F11 in game to draw maps"
+} else {
+    [Console]::Error.WriteLine("editor.gd is not in this folder, so the map editor was skipped.")
+    [Console]::Error.WriteLine("Get a complete copy from https://github.com/lawless-m/Orcs")
 }
 
 # maps are copied in, never over: yours are not ours to replace

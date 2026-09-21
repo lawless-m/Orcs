@@ -2,7 +2,7 @@
 # Install the custom-map loader for "Sir, We Have an Orc Problem".
 #
 #   ./install.sh
-#   ./install.sh --editor --cheats
+#   ./install.sh --cheats
 #   ./install.sh --uninstall
 #
 # Nothing belonging to the game is modified: one config file goes beside the
@@ -11,15 +11,14 @@ set -eu
 
 here=$(cd "$(dirname "$0")" && pwd)
 game_name="Sir, We Have an Orc Problem"
-game_path=""; editor=0; cheats=0; uninstall=0
+game_path=""; cheats=0; uninstall=0
 
 while [ $# -gt 0 ]; do
 	case $1 in
-		--editor) editor=1 ;;
 		--cheats) cheats=1 ;;
 		--uninstall) uninstall=1 ;;
 		--game-path) shift; game_path=${1:-} ;;
-		*) echo "usage: $(basename "$0") [--editor] [--cheats] [--uninstall] [--game-path DIR]" >&2; exit 1 ;;
+		*) echo "usage: $(basename "$0") [--cheats] [--uninstall] [--game-path DIR]" >&2; exit 1 ;;
 	esac
 	shift
 done
@@ -73,7 +72,7 @@ fi
 {
 	[ $cheats -eq 1 ] && printf '_custom_features="steam,cheats"\n\n'
 	printf '[autoload]\n\nModLoader="*user://mod_loader.gd"\n'
-	[ $editor -eq 1 ] && printf 'MapEditor="*user://editor.gd"\n'
+	[ -f "$here/editor.gd" ] && printf 'MapEditor="*user://editor.gd"\n'
 } > "$game/override.cfg"
 echo "wrote override.cfg"
 
@@ -81,15 +80,12 @@ mkdir -p "$user"
 cp "$here/mod_loader.gd" "$user/"
 echo "copied mod_loader.gd"
 
-if [ $editor -eq 1 ]; then
-	if [ -f "$here/editor.gd" ]; then
-		cp "$here/editor.gd" "$user/"
-		echo "copied editor.gd -- press F11 in game"
-	else
-		echo "--editor asked for, but editor.gd is not in this folder." >&2
-		echo "It ships with the repository, not the player download:" >&2
-		echo "  https://github.com/lawless-m/Orcs" >&2
-	fi
+if [ -f "$here/editor.gd" ]; then
+	cp "$here/editor.gd" "$user/"
+	echo "copied editor.gd -- press F11 in game to draw maps"
+else
+	echo "editor.gd is not in this folder, so the map editor was skipped." >&2
+	echo "Get a complete copy from https://github.com/lawless-m/Orcs" >&2
 fi
 
 # maps are copied in, never over: yours are not ours to replace

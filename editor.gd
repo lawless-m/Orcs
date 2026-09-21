@@ -1,14 +1,15 @@
 extends Node
 ## In-game map painter for "Sir, We Have an Orc Problem".
 ##
-## Turn it on with --editor / -Editor at install time, or by uncommenting the
-## MapEditor autoload in override.cfg. Players who do neither never load it.
+## Registered by the installers as the MapEditor autoload; by hand, that is the
+## MapEditor line in override.cfg.
 ##
 ##   F11          open the painter, and close it again
 ##   F5           save and play this map straight away
 ##   N            move to your next map, if you have more than one
 ##   Ctrl+N       start a new map
 ##   Ctrl+T       rename this map
+##   Ctrl+O       how many orcs altogether
 ##   left drag    paint          right drag   erase to open ground
 ##   S            switch between painting and placing spawn points
 ##   G R B        ground, rock, base
@@ -41,7 +42,7 @@ const NEW_MAP := {
 
 const LEGEND := """drag paint   right-drag erase   wheel zoom   middle-drag pan
 G ground   R rock   B base   1-9 brush size   S spawn points
-Ctrl+S save   Ctrl+Z undo   Ctrl+N new map   Ctrl+T rename   Ctrl+E dump stock
+Ctrl+S save   Ctrl+Z undo   Ctrl+N new map   Ctrl+T rename   Ctrl+O orc count
 F5 save and play   F11 close"""
 
 var _maps: Array[Dictionary] = []
@@ -70,6 +71,7 @@ var _note := ""
 var _spawner_mode := false
 var _drag_spawner = null
 var _name_edit: LineEdit
+var _asking := ""          # which value the text box is collecting
 var _base_cells := -1
 var _note_at := 0
 
@@ -83,7 +85,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	elif not _open:
 		return
 	elif key == KEY_T and (event as InputEventKey).ctrl_pressed:
-		_begin_rename()
+		_ask("name", _maps[_index]["name"], "what should this map be called?")
+	elif key == KEY_O and (event as InputEventKey).ctrl_pressed:
+		_ask("orcs", str(_total_orcs()), "how many orcs altogether?")
 	elif key == KEY_S and not (event as InputEventKey).ctrl_pressed:
 		_spawner_mode = not _spawner_mode
 	elif key == KEY_N and (event as InputEventKey).ctrl_pressed:
@@ -485,9 +489,10 @@ func _refresh_hud(note := "") -> void:
 	var warn := "   NO BASE -- orcs will have nothing to walk to" if _base_cells == 0 else ""
 	var line2 := "spawn points: %d   click place   drag move   right-click remove" % _spawners().size() \
 		if _spawner_mode else "paint: %s   brush: %d" % [names.get(_paint_with, "?"), _brush]
-	_hud.text = "%s%s   %dx%d\n%s   %s\n\n%s" % [
+	_hud.text = "%s%s   %dx%d   %s orcs\n%s   %s\n\n%s" % [
 		_maps[_index]["name"], " *" if _dirty else "",
-		_img.get_width(), _img.get_height(), line2, _note + warn,
+		_img.get_width(), _img.get_height(),
+		String.num_uint64(_total_orcs()), line2, _note + warn,
 		LEGEND + ("   N next map (saves)" if _maps.size() > 1 else "")]
 
 
@@ -495,12 +500,43 @@ func _refresh_hud(note := "") -> void:
 
 # --- the map's name, which lives in level.json beside the spawn points --------
 
-func _begin_rename() -> void:
-	_name_edit.text = _maps[_index]["name"]
+func _ask(what: String, current: String, label: String) -> void:
+	_asking = what
+	_name_edit.text = current
 	_name_edit.visible = true
 	_name_edit.grab_focus()
 	_name_edit.select_all()
-	_refresh_hud("type a name, Enter to keep it, Esc to leave it alone")
+	_refresh_hud("%s  (Enter to keep it, Esc to leave it alone)" % label)
+
+
+func _total_orcs() -> int:
+	var n := 0
+	for s in _spawners():
+		for w in s.waves:
+			n += w.amount
+	return n
+
+
+## Spread evenly over the spawn points, the way the game's own levels do it,
+## with any remainder given to the first.
+func _set_total_orcs(total: int) -> void:
+	var points := _spawners()
+	if points.is_empty():
+		_refresh_hud("place a spawn point first, with S")
+		return
+	for s in points:
+		if s.waves.is_empty():
+			var w := EnemySpawnWave.new()
+			w.enemy_type = 0
+			w.duration = 60.0
+			s.waves.append(w)
+	var each: int = total / points.size()
+	for i in points.size():
+		var share := each + (total - each * points.size() if i == 0 else 0)
+		points[i].waves[0].amount = share
+		for j in range(1, points[i].waves.size()):
+			points[i].waves[j].amount = 0
+	_dirty = true
 
 
 func _rename_input(event: InputEvent) -> void:
@@ -510,16 +546,24 @@ func _rename_input(event: InputEvent) -> void:
 
 
 func _finish_rename(text: String) -> void:
-	var name := text.strip_edges()
-	if name != "":
-		_maps[_index]["name"] = name
-		_maps[_index]["cfg"]["name"] = name
-		var id: int = _maps[_index].get("id", -1)
-		if id >= 0 and GameManager.levels.has(id):
-			GameManager.levels[id].name = name     # the level list, straight away
-		_dirty = true
+	var value := text.strip_edges()
+	match _asking:
+		"name":
+			if value != "":
+				_maps[_index]["name"] = value
+				_maps[_index]["cfg"]["name"] = value
+				var id: int = _maps[_index].get("id", -1)
+				if id >= 0 and GameManager.levels.has(id):
+					GameManager.levels[id].name = value   # the level list, straight away
+				_dirty = true
+		"orcs":
+			if value.is_valid_int() and value.to_int() > 0:
+				_set_total_orcs(value.to_int())
+			else:
+				_refresh_hud("that is not a number of orcs")
 	_end_rename()
-	_refresh_hud("named -- Ctrl+S to write it to level.json")
+	if _dirty:
+		_refresh_hud("changed -- Ctrl+S to keep it")
 
 
 func _end_rename() -> void:

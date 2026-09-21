@@ -1,6 +1,6 @@
-# A custom map for "Sir, We Have an Orc Problem"
+# Custom maps for "Sir, We Have an Orc Problem"
 
-An extra level, and a map editor if you want to draw your own.
+A map editor that runs inside the game, and one map made with it to get you started.
 
 This is not official, and it is not made by the people who made the game. It does not
 change the game itself — it puts three small files next to it, and you can take them
@@ -10,11 +10,8 @@ away again whenever you like. Your saves are not touched.
 
 1. Unzip this folder somewhere, if you have not already.
 2. Double-click **install.bat**.
-3. It asks you two questions. Answer them, and it does the rest.
-
-    - *Do you want the map editor too?* — say yes if you fancy drawing your own maps.
-    - *Unlock the new map now?* — the map normally appears after you have beaten
-      Level 6.2. Say yes to play it straight away.
+3. It asks you one question: *unlock the new map now?* The map normally appears once
+   you have beaten Level 6.2, so say yes if you would rather play it straight away.
 
 4. Start the game through Steam as usual.
 
@@ -26,8 +23,8 @@ folder it opens, and run `install.bat` again — it will ask for it.
 
 Open a terminal in this folder and run one of:
 
-    ./install.sh                     just the map
-    ./install.sh --editor --cheats   the map editor too, and unlock it now
+    ./install.sh            
+    ./install.sh --cheats    also unlocks the new map straight away
 
 ## Playing it
 
@@ -37,7 +34,7 @@ and orcs coming in from all four sides.
 
 ## Drawing your own maps
 
-If you installed the editor, press **F11** while the game is running.
+Press **F11** while the game is running.
 
     click and drag      paint
     right-click drag    rub out
@@ -49,6 +46,7 @@ If you installed the editor, press **F11** while the game is running.
                         (click to add, drag to move, right-click to remove)
     Ctrl+N              start a brand new map
     Ctrl+T              give it a name
+    Ctrl+O              how many orcs attack altogether
     Ctrl+S              save it
     Ctrl+Z              undo
     F5                  save it and play it right now
@@ -60,6 +58,11 @@ you can zip that folder up and send it to somebody else.
 
 Every map needs a bit of **base** painted somewhere, or the orcs will wander in with
 nothing to walk towards. The editor will warn you if you forget.
+
+The number of orcs is shown along the top, and **Ctrl+O** changes it — they are shared
+out evenly between your spawn points. For a sense of scale, the game's own last level
+sends 160,000. How tough each orc is, and how long they take to arrive, are in the
+map's `level.json` file, which you can open in any text editor.
 
 ## Removing it
 

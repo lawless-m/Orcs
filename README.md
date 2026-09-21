@@ -7,11 +7,12 @@ folder is patched except one small text file.
 
 ## Install
 
-    install.bat                             # Windows -- double-click it
-    ./install.sh --editor --cheats          # Linux
+    install.bat                  # Windows -- double-click it
+    ./install.sh --cheats        # Linux
 
-`install.bat` asks two plain questions and calls `install.ps1`, which is also there
-for anyone who wants the switches. The installers find the game through Steam -- every library, not just the default --
+The editor always goes in -- nobody wants the map and not the editor. `--cheats`
+puts an Unlock button on every level, so you need not replay the campaign to reach
+your own map. `install.bat` asks that one question and calls `install.ps1`. The installers find the game through Steam -- every library, not just the default --
 put the three files in place, and never replace a map you already have. `--uninstall`
 takes it back out and leaves your maps and saves alone. If the game cannot be found,
 pass the folder with `--game-path` / `-GamePath`.
@@ -117,9 +118,8 @@ and swallows it.
 
 ## Painting maps (F11)
 
-`editor.gd` is a map painter that runs inside the game. Install with `--editor` /
-`-Editor`, or uncomment the `MapEditor` line in `override.cfg`. Anyone who does
-neither never loads it.
+`editor.gd` is a map painter that runs inside the game. The installers put it in
+place; by hand, it is the `MapEditor` line in `override.cfg`.
 
     F11          open the painter, and close it again
     F5           save and play this map straight away
@@ -133,6 +133,7 @@ neither never loads it.
 
     Ctrl+S       save              Ctrl+Z       undo
     Ctrl+N       start a new map   Ctrl+T       rename this map
+    Ctrl+O       total orcs, shared out between the spawn points
     N            move to your next map
     Ctrl+E       copy the stock maps and sheets to user://reference/
     middle drag  pan               wheel        zoom
