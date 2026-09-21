@@ -1,97 +1,21 @@
 {
-	"enemy_health_buff": 80.0,
-	"ground_tiles_count": 2.0,
-	"level_bonus_marks": 20000.0,
-	"map": "map.png",
-	"marks_upon_all_killed": 0.0,
-	"marks_upon_survival": 500000.0,
-	"name": "Squeers' Gauntlet",
-	"spawners": [
-		{
-			"initial_velocity": [
-				50.0,
-				0.0
-			],
-			"position": [
-				-55.0022583007812,
-				542.529113769531
-			],
-			"size": [
-				20.0,
-				100.0
-			],
-			"waves": [
-				{
-					"amount": 30000,
-					"duration": 90.0,
-					"enemy_type": 0
-				}
-			]
-		},
-		{
-			"initial_velocity": [
-				-50.0,
-				0.0
-			],
-			"position": [
-				1561.0,
-				768.0
-			],
-			"size": [
-				20.0,
-				100.0
-			],
-			"waves": [
-				{
-					"amount": 30000,
-					"duration": 90.0,
-					"enemy_type": 0
-				}
-			]
-		},
-		{
-			"initial_velocity": [
-				0.0,
-				50.0
-			],
-			"position": [
-				768.0,
-				-25.0
-			],
-			"size": [
-				100.0,
-				20.0
-			],
-			"waves": [
-				{
-					"amount": 30000,
-					"duration": 90.0,
-					"enemy_type": 0
-				}
-			]
-		},
-		{
-			"initial_velocity": [
-				0.0,
-				-50.0
-			],
-			"position": [
-				768.0,
-				1561.0
-			],
-			"size": [
-				100.0,
-				20.0
-			],
-			"waves": [
-				{
-					"amount": 30000,
-					"duration": 90.0,
-					"enemy_type": 0
-				}
-			]
-		}
-	],
-	"sprite_sheet": "res://levels/sprite_sheet_stone.png",
-	"wall_tiles_count": 2.0
+  "name": "Squeers' Gauntlet",
+  "map": "map.png",
+  "sprite_sheet": "res://levels/sprite_sheet_stone.png",
+  "wall_tiles_count": 2,
+  "ground_tiles_count": 2,
+  "enemy_health_buff": 80.0,
+  "level_bonus_marks": 20000,
+  "marks_upon_survival": 500000,
+  "marks_upon_all_killed": 0,
+  "spawners": [
+    { "position": [-25, 768],  "size": [20, 100], "initial_velocity": [50, 0],
+      "waves": [ { "enemy_type": 0, "amount": 30000, "duration": 90.0 } ] },
+    { "position": [1561, 768], "size": [20, 100], "initial_velocity": [-50, 0],
+      "waves": [ { "enemy_type": 0, "amount": 30000, "duration": 90.0 } ] },
+    { "position": [768, -25],  "size": [100, 20], "initial_velocity": [0, 50],
+      "waves": [ { "enemy_type": 0, "amount": 30000, "duration": 90.0 } ] },
+    { "position": [768, 1561], "size": [100, 20], "initial_velocity": [0, -50],
+      "waves": [ { "enemy_type": 0, "amount": 30000, "duration": 90.0 } ] }
+  ]
 }
