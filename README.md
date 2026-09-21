@@ -193,6 +193,15 @@ needs `set_image()`. And Godot's format strings have no `%g`.
 
 ## Known limits
 
+- **The Windows installer has not been run on Windows.** The game side has: the
+  Windows build was run under Wine with the mod installed, and `user://` resolves to
+  `%APPDATA%\Sir, We Have an Orc Problem\` exactly as documented, with both autoloads
+  and the cheats feature working. What is untested is `install.ps1` itself -- the
+  registry read of `HKCU:\Software\Valve\Steam`, Windows PowerShell 5.1 (it was
+  tested under 7, which is why it writes files through .NET rather than trusting
+  cmdlet defaults), and double-clicking `install.bat`. All of those fail safely:
+  the registry read falls back to Program Files, then `libraryfolders.vdf`, then
+  `-GamePath`.
 - A game update that reworks `GameManager` may need the loader adjusted.
 - Custom levels go through the normal Steam achievement path.
 
