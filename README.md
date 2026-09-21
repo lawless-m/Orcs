@@ -135,6 +135,7 @@ place; by hand, it is the `MapEditor` line in `override.cfg`.
 
     Ctrl+S       save              Ctrl+Z       undo
     Ctrl+N       start a new map   Ctrl+T       rename this map
+    Ctrl+A       how big the map is, in tiles (192, or 256x128)
     Ctrl+O       total orcs, shared out between the spawn points ("12k" works)
     Ctrl+H       how tough each orc is    Ctrl+D   seconds for them all to arrive
     N            move to your next map
@@ -148,6 +149,10 @@ you are zoomed in far enough for it to be legible.
 
 Spawn points are drawn in both modes, with an arrow for the direction the orcs enter;
 a new one faces the middle of the map so there is no velocity to work out by hand.
+
+Ctrl+Z undoes any of it -- painting, spawn points, the look, the numbers, the size --
+and closing the editor with unsaved work saves rather than discarding it, because
+reopening re-reads from disk.
 
 Ctrl+S writes `map.png` and `level.json` back into the map's own folder -- the image
 holds the ground, the JSON holds the spawn points and the name -- and keeps one

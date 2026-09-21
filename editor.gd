@@ -9,6 +9,7 @@ extends Node
 ##   N            move to your next map, if you have more than one
 ##   Ctrl+N       start a new map
 ##   Ctrl+T       rename this map
+##   Ctrl+A       how big the map is, in tiles (192, or 256x128)
 ##   Ctrl+O       how many orcs altogether (12000, or 12k)
 ##   Ctrl+H       how tough each orc is
 ##   Ctrl+D       how many seconds they take to arrive
@@ -58,7 +59,7 @@ const NEW_MAP := {
 
 const LEGEND := """drag paint   right-drag erase   wheel zoom   middle-drag pan
 G ground   R rock   B base   1-9 brush size   S spawn points   P look
-Ctrl+O orcs   Ctrl+H toughness   Ctrl+D seconds   Ctrl+T rename
+Ctrl+A size   Ctrl+O orcs   Ctrl+H toughness   Ctrl+D seconds   Ctrl+T rename
 Ctrl+S save   Ctrl+Z undo   Ctrl+N new map   Ctrl+E dump stock
 F5 save and play   F11 close"""
 
@@ -67,7 +68,7 @@ var _index := -1
 var _dir := ""
 var _img: Image
 var _tex: ImageTexture
-var _undo: Array[Image] = []
+var _undo: Array[Dictionary] = []
 var _paint_with := ROCK
 var _brush := 1
 var _dirty := false
@@ -103,6 +104,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		return
 	elif key == KEY_T and (event as InputEventKey).ctrl_pressed:
 		_ask("name", _maps[_index]["name"], "what should this map be called?")
+	elif key == KEY_A and (event as InputEventKey).ctrl_pressed:
+		_ask("size", "%dx%d" % [_img.get_width(), _img.get_height()],
+			"how big, in tiles? 192 for a square, or 256x128")
 	elif key == KEY_O and (event as InputEventKey).ctrl_pressed:
 		_ask("orcs", str(_total_orcs()), "how many orcs altogether?")
 	elif key == KEY_P:
@@ -206,8 +210,9 @@ func _open_map(which: int, prefer_dir := "") -> void:
 			if _maps[i]["dir"] == prefer_dir:
 				_index = i
 				break
+	if _maps[_index]["dir"] != _dir:
+		_undo.clear()          # a different map; its history is not this one's
 	_dir = _maps[_index]["dir"]
-	_undo.clear()
 	_dirty = false
 	_backed_up = false
 
@@ -236,6 +241,8 @@ func _open_map(which: int, prefer_dir := "") -> void:
 
 
 func _close() -> void:
+	if _dirty:
+		_save()      # reopening re-reads from disk, so never close on unsaved work
 	_open = false
 	if _layer:
 		_layer.visible = false
@@ -372,12 +379,14 @@ func _spawner_input(event: InputEvent) -> void:
 		var hit = _spawner_at(event.position)
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			if event.pressed:
+				_push_undo()
 				if hit == null:
 					_add_spawner(_screen_to_world(event.position))
 				_drag_spawner = hit if hit else _spawners().back()
 			else:
 				_drag_spawner = null
 		elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed and hit:
+			_push_undo()
 			_spawners().erase(hit)
 			_dirty = true
 			_refresh_hud("spawn point removed")
@@ -538,6 +547,41 @@ func _ask(what: String, current: String, label: String) -> void:
 
 ## People write numbers like people: 12k, 1.5k, 120,000, 2m. Returns -1 for
 ## anything that is not a number at all.
+## Resizing keeps what you have drawn in the top left corner and fills the rest
+## with rock, so the map stays walled in rather than leaking orcs off the edge.
+func _resize_map(w: int, h: int) -> void:
+	w = clampi(w, 32, 512)
+	h = clampi(h, 32, 512)
+	if w == _img.get_width() and h == _img.get_height():
+		return
+	var grown := Image.create(w, h, false, Image.FORMAT_RGBA8)
+	grown.fill(ROCK)
+	var keep := Rect2i(0, 0, mini(w, _img.get_width()), mini(h, _img.get_height()))
+	grown.blit_rect(_img, keep, Vector2i.ZERO)
+	_adopt(grown)
+	_dirty = true
+
+
+## Take a new image as the map, coping with it being a different size from the
+## one before -- which ImageTexture.update() will not do, and undo has to.
+func _adopt(img: Image) -> void:
+	var resized := img.get_size() != _img.get_size()
+	_img = img
+	if resized:
+		_tex.set_image(_img)
+		var d := _data()
+		d.world_size = Vector2(_img.get_size()) * WorldGen.WORLD_UNITS_PER_PIXEL
+		_maps[_index]["cfg"]["map_size"] = [_img.get_width(), _img.get_height()]
+		if _cam:
+			_cam.position = d.world_size / 2.0
+			_cam.zoom = Vector2.ONE * _fit_zoom()
+	else:
+		_tex.update(_img)
+	_regen.start()
+	if _canvas:
+		_canvas.queue_redraw()
+
+
 func _palette_name() -> String:
 	return _data().sprite_sheet_texture.resource_path \
 		.get_file().trim_prefix("sprite_sheet_").trim_suffix(".png")
@@ -556,6 +600,7 @@ func _next_palette() -> void:
 	if tex == null:
 		_refresh_hud("no sprite sheet called %s" % p["name"])
 		return
+	_push_undo()
 	var d := _data()
 	d.sprite_sheet_texture = tex
 	d.wall_tiles_count = p["wall"]
@@ -639,6 +684,7 @@ func _finish_rename(text: String) -> void:
 	match _asking:
 		"name":
 			if value != "":
+				_push_undo()
 				_maps[_index]["name"] = value
 				_maps[_index]["cfg"]["name"] = value
 				var id: int = _maps[_index].get("id", -1)
@@ -646,9 +692,20 @@ func _finish_rename(text: String) -> void:
 					GameManager.levels[id].name = value   # the level list, straight away
 				_dirty = true
 				changed = true
+		"size":
+			var parts := value.to_lower().replace(" ", "").split("x")
+			var w := _parse_number(parts[0])
+			var h := _parse_number(parts[1]) if parts.size() > 1 else w
+			if w >= 1.0 and h >= 1.0:
+				_push_undo()
+				_resize_map(int(w), int(h))
+				changed = true
+			else:
+				_refresh_hud("give a size like 192, or 256x128")
 		"orcs":
 			var n := _parse_number(value)
 			if n >= 1.0:
+				_push_undo()
 				_set_total_orcs(int(n))
 				changed = true
 			else:
@@ -656,6 +713,7 @@ func _finish_rename(text: String) -> void:
 		"buff":
 			var b := _parse_number(value)
 			if b > 0.0:
+				_push_undo()
 				_data().enemy_health_buff = b
 				_maps[_index]["cfg"]["enemy_health_buff"] = b
 				_dirty = true
@@ -665,6 +723,7 @@ func _finish_rename(text: String) -> void:
 		"secs":
 			var secs := _parse_number(value)
 			if secs > 0.0:
+				_push_undo()
 				for s in _spawners():
 					for w in s.waves:
 						w.duration = secs
@@ -683,18 +742,20 @@ func _end_rename() -> void:
 
 
 func _push_undo() -> void:
-	_undo.append(_img.duplicate())
+	_undo.append({"img": _img.duplicate(), "cfg": _settings().duplicate(true)})
 	if _undo.size() > UNDO_MAX:
 		_undo.pop_front()
 
 
 func _undo_once() -> void:
 	if _undo.is_empty():
+		_refresh_hud("nothing left to undo")
 		return
-	_img.copy_from(_undo.pop_back())
-	_tex.update(_img)
-	_regen.start()
-	_canvas.queue_redraw()
+	var step: Dictionary = _undo.pop_back()
+	_restore_settings(step["cfg"])
+	_adopt(step["img"])
+	_dirty = true
+	_refresh_hud("undone")
 
 
 ## The whole point of the loop: edit, F5, fight it, come back. Edits are already
@@ -729,8 +790,9 @@ func _save() -> void:
 	_refresh_hud("saved")
 
 
-## Spawn points are level.json, not the image, so they are written back too.
-func _save_config() -> void:
+## Everything about a map except the picture. One description, used both for
+## writing level.json and for undo, so the two cannot drift apart.
+func _settings() -> Dictionary:
 	var cfg: Dictionary = _maps[_index]["cfg"]
 	var out := []
 	for s in _spawners():
@@ -746,10 +808,49 @@ func _save_config() -> void:
 			"waves": waves,
 		})
 	cfg["spawners"] = out
+	cfg["name"] = _maps[_index]["name"]
 	cfg["enemy_health_buff"] = _data().enemy_health_buff
 	cfg["sprite_sheet"] = _data().sprite_sheet_texture.resource_path
 	cfg["wall_tiles_count"] = _data().wall_tiles_count
 	cfg["ground_tiles_count"] = _data().ground_tiles_count
+	return cfg
+
+
+## The reverse: put a remembered set of settings back.
+func _restore_settings(cfg: Dictionary) -> void:
+	var d := _data()
+	d.enemy_health_buff = cfg["enemy_health_buff"]
+	d.wall_tiles_count = cfg["wall_tiles_count"]
+	d.ground_tiles_count = cfg["ground_tiles_count"]
+	var sheet = load(cfg["sprite_sheet"])
+	if sheet:
+		d.sprite_sheet_texture = sheet
+		if _scene:
+			_scene.sprite_sheet_texture = sheet
+	d.spawners.clear()
+	for entry in cfg["spawners"]:
+		var s := EnemySpawnerData.new()
+		s.position = Vector2(entry["position"][0], entry["position"][1])
+		s.initial_velocity = Vector2(entry["initial_velocity"][0], entry["initial_velocity"][1])
+		var shape := RectangleShape2D.new()
+		shape.size = Vector2(entry["size"][0], entry["size"][1])
+		s.shape = shape
+		for w in entry["waves"]:
+			var wave := EnemySpawnWave.new()
+			wave.enemy_type = int(w["enemy_type"])
+			wave.amount = int(w["amount"])
+			wave.duration = w["duration"]
+			s.waves.append(wave)
+		d.spawners.append(s)
+	_maps[_index]["name"] = cfg["name"]
+	_maps[_index]["cfg"] = cfg
+	var id: int = _maps[_index].get("id", -1)
+	if id >= 0 and GameManager.levels.has(id):
+		GameManager.levels[id].name = cfg["name"]
+
+
+func _save_config() -> void:
+	var cfg := _settings()
 	var f := FileAccess.open(_dir + "/level.json", FileAccess.WRITE)
 	if f == null:
 		push_error("[editor] could not write %s/level.json" % _dir)

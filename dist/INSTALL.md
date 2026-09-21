@@ -48,11 +48,12 @@ Press **F11** while the game is running.
                         lava, stone, cave, space
     Ctrl+N              start a brand new map
     Ctrl+T              give it a name
+    Ctrl+A              how big the map is (192, or 256x128)
     Ctrl+O              how many orcs attack altogether
     Ctrl+H              how tough each one is
     Ctrl+D              how many seconds they take to arrive
     Ctrl+S              save it
-    Ctrl+Z              undo
+    Ctrl+Z              undo — anything, not just painting
     F5                  save it and play it right now
     F11                 put the editor away
 
