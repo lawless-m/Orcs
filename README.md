@@ -130,6 +130,8 @@ place; by hand, it is the `MapEditor` line in `override.cfg`.
 
     S            place spawn points instead of painting; G, R or B comes back
                  click to place, drag to move, right-click to remove
+    P            cycle the map's look: grass, ice, desert, lava, stone,
+                 cave, space -- with the tile-variant counts the game uses
 
     Ctrl+S       save              Ctrl+Z       undo
     Ctrl+N       start a new map   Ctrl+T       rename this map

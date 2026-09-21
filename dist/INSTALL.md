@@ -44,6 +44,8 @@ Press **F11** while the game is running.
     1 to 9              how big the brush is
     S                   place the points orcs come in from
                         (click to add, drag to move, right-click to remove)
+    P                   change how the map looks: grass, ice, desert,
+                        lava, stone, cave, space
     Ctrl+N              start a brand new map
     Ctrl+T              give it a name
     Ctrl+O              how many orcs attack altogether

@@ -13,6 +13,7 @@ extends Node
 ##   Ctrl+H       how tough each orc is
 ##   Ctrl+D       how many seconds they take to arrive
 ##   left drag    paint          right drag   erase to open ground
+##   P            cycle how the map looks: grass, ice, desert, lava, stone...
 ##   S            switch between painting and placing spawn points
 ##   G R B        ground, rock, base
 ##   1 - 9        brush size, in cells across
@@ -30,6 +31,19 @@ const ROCK := Color(0, 0, 1, 1)
 const BASE := Color(1, 0, 0, 1)
 const UNDO_MAX := 30
 const REGEN_DELAY := 0.08
+## The looks a map can have, with the tile-variant counts the game itself uses
+## for each. "space" is in the game's files but no level uses it, so its counts
+## are the safe pair rather than an observed one.
+const PALETTES := [
+	{"name": "grass",  "wall": 1, "ground": 1},
+	{"name": "ice",    "wall": 1, "ground": 1},
+	{"name": "desert", "wall": 3, "ground": 3},
+	{"name": "lava",   "wall": 2, "ground": 3},
+	{"name": "stone",  "wall": 2, "ground": 2},
+	{"name": "cave",   "wall": 2, "ground": 1},
+	{"name": "space",  "wall": 1, "ground": 1},
+]
+
 const NEW_MAP := {
 	"name": "New Map", "map": "map.png", "map_size": [128, 128],
 	"sprite_sheet": "res://levels/sprite_sheet_grass.png",
@@ -43,7 +57,7 @@ const NEW_MAP := {
 }
 
 const LEGEND := """drag paint   right-drag erase   wheel zoom   middle-drag pan
-G ground   R rock   B base   1-9 brush size   S spawn points
+G ground   R rock   B base   1-9 brush size   S spawn points   P look
 Ctrl+O orcs   Ctrl+H toughness   Ctrl+D seconds   Ctrl+T rename
 Ctrl+S save   Ctrl+Z undo   Ctrl+N new map   Ctrl+E dump stock
 F5 save and play   F11 close"""
@@ -91,6 +105,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		_ask("name", _maps[_index]["name"], "what should this map be called?")
 	elif key == KEY_O and (event as InputEventKey).ctrl_pressed:
 		_ask("orcs", str(_total_orcs()), "how many orcs altogether?")
+	elif key == KEY_P:
+		_next_palette()
 	elif key == KEY_H and (event as InputEventKey).ctrl_pressed:
 		_ask("buff", str(_data().enemy_health_buff),
 			"how tough is each orc? (the game's last level uses 97.7)")
@@ -498,9 +514,9 @@ func _refresh_hud(note := "") -> void:
 	var warn := "   NO BASE -- orcs will have nothing to walk to" if _base_cells == 0 else ""
 	var line2 := "spawn points: %d   click place   drag move   right-click remove" % _spawners().size() \
 		if _spawner_mode else "paint: %s   brush: %d" % [names.get(_paint_with, "?"), _brush]
-	_hud.text = "%s%s   %dx%d   %s orcs over %ss   toughness %s\n%s   %s\n\n%s" % [
+	_hud.text = "%s%s   %dx%d %s   %s orcs over %ss   toughness %s\n%s   %s\n\n%s" % [
 		_maps[_index]["name"], " *" if _dirty else "",
-		_img.get_width(), _img.get_height(),
+		_img.get_width(), _img.get_height(), _palette_name(),
 		String.num_uint64(_total_orcs()),
 		String.num(_spawn_seconds(), 0), String.num(_data().enemy_health_buff, 2),
 		line2, _note + warn,
@@ -522,6 +538,39 @@ func _ask(what: String, current: String, label: String) -> void:
 
 ## People write numbers like people: 12k, 1.5k, 120,000, 2m. Returns -1 for
 ## anything that is not a number at all.
+func _palette_name() -> String:
+	return _data().sprite_sheet_texture.resource_path \
+		.get_file().trim_prefix("sprite_sheet_").trim_suffix(".png")
+
+
+func _next_palette() -> void:
+	var here := _palette_name()
+	var at := 0
+	for i in PALETTES.size():
+		if PALETTES[i]["name"] == here:
+			at = i
+			break
+	var p: Dictionary = PALETTES[(at + 1) % PALETTES.size()]
+	var path := "res://levels/sprite_sheet_%s.png" % p["name"]
+	var tex := load(path)
+	if tex == null:
+		_refresh_hud("no sprite sheet called %s" % p["name"])
+		return
+	var d := _data()
+	d.sprite_sheet_texture = tex
+	d.wall_tiles_count = p["wall"]
+	d.ground_tiles_count = p["ground"]
+	var cfg: Dictionary = _maps[_index]["cfg"]
+	cfg["sprite_sheet"] = path
+	cfg["wall_tiles_count"] = p["wall"]
+	cfg["ground_tiles_count"] = p["ground"]
+	if _scene:
+		_scene.sprite_sheet_texture = tex
+	_dirty = true
+	_regen.start()
+	_refresh_hud("look: %s" % p["name"])
+
+
 func _parse_number(text: String) -> float:
 	var t := text.strip_edges().to_lower().replace(",", "").replace(" ", "")
 	var scale := 1.0
@@ -698,6 +747,9 @@ func _save_config() -> void:
 		})
 	cfg["spawners"] = out
 	cfg["enemy_health_buff"] = _data().enemy_health_buff
+	cfg["sprite_sheet"] = _data().sprite_sheet_texture.resource_path
+	cfg["wall_tiles_count"] = _data().wall_tiles_count
+	cfg["ground_tiles_count"] = _data().ground_tiles_count
 	var f := FileAccess.open(_dir + "/level.json", FileAccess.WRITE)
 	if f == null:
 		push_error("[editor] could not write %s/level.json" % _dir)
