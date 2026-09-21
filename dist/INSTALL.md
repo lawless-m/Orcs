@@ -36,26 +36,34 @@ and orcs coming in from all four sides.
 
 Press **F11** while the game is running.
 
+    F11                 open the editor, and put it away again
+    F5                  save this map and play it right now
+    N                   move to your next map
+
     click and drag      paint
     right-click drag    rub out
     G                   ground, the bit orcs walk on
     R                   rock, which they cannot walk through
     B                   your base, the bit they are trying to reach
     1 to 9              how big the brush is
+    middle drag         move around
+    mouse wheel         zoom in and out
+
     S                   place the points orcs come in from
                         (click to add, drag to move, right-click to remove)
     P                   change how the map looks: grass, ice, desert,
                         lava, stone, cave, space
-    Ctrl+N              start a brand new map
+
     Ctrl+T              give it a name
     Ctrl+A              how big the map is (192, or 256x128)
     Ctrl+O              how many orcs attack altogether
     Ctrl+H              how tough each one is
     Ctrl+D              how many seconds they take to arrive
+    Ctrl+N              start a brand new map
+
     Ctrl+S              save it
     Ctrl+Z              undo — anything, not just painting
-    F5                  save it and play it right now
-    F11                 put the editor away
+    Esc                 close a typing box, changing nothing
 
 You are drawing straight onto the game's own picture of the map, so what you see is
 what you get when you play it. Your maps are saved in the same folder as this one, and
