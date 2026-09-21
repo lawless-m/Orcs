@@ -239,6 +239,7 @@ func _open_map(which: int, prefer_dir := "") -> void:
 
 	_layer.visible = true
 	_open = true
+	_refresh_level_menu()      # a map made with Ctrl+N has no panel yet
 	_regen_now()
 
 
@@ -596,6 +597,26 @@ func _adopt(img: Image) -> void:
 		_canvas.queue_redraw()
 
 
+## The level list builds its panels once, when the tech tree loads, and copies
+## each name into a label. Renaming a map, or making a new one, therefore has to
+## reach in and say so.
+func _refresh_level_menu() -> void:
+	var container := get_tree().root.find_child("LevelContainer", true, false)
+	if container == null:
+		return                      # not on the tech tree; it will build fresh
+	var shown := {}
+	for panel in container.get_children():
+		shown[panel.level_id] = true
+		var label := panel.find_child("LevelNameLabel", true, false)
+		if label and GameManager.levels.has(panel.level_id):
+			label.text = GameManager.levels[panel.level_id].name
+	for id in GameManager.levels:
+		if not shown.has(id):
+			var panel = load("res://tech_tree/hud/level_panel.tscn").instantiate()
+			panel.level_id = id     # set before adding, as the container does
+			container.add_child(panel)
+
+
 func _palette_name() -> String:
 	return _data().sprite_sheet_texture.resource_path \
 		.get_file().trim_prefix("sprite_sheet_").trim_suffix(".png")
@@ -703,7 +724,8 @@ func _finish_rename(text: String) -> void:
 				_maps[_index]["cfg"]["name"] = value
 				var id: int = _maps[_index].get("id", -1)
 				if id >= 0 and GameManager.levels.has(id):
-					GameManager.levels[id].name = value   # the level list, straight away
+					GameManager.levels[id].name = value
+				_refresh_level_menu()
 				_dirty = true
 				changed = true
 		"size":
@@ -863,6 +885,7 @@ func _restore_settings(cfg: Dictionary) -> void:
 	var id: int = _maps[_index].get("id", -1)
 	if id >= 0 and GameManager.levels.has(id):
 		GameManager.levels[id].name = cfg["name"]
+	_refresh_level_menu()          # undo has to reach the menu too
 
 
 func _save_config() -> void:
