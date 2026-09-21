@@ -5,12 +5,18 @@
     ./package.sh gauntlet          # Linux, macOS, WSL, Git Bash
     ./package.ps1 gauntlet         # Windows PowerShell
 
-That writes `dist/gauntlet.zip` — about 12 KB, seven files. Both scripts produce a
-byte-identical package. Run one again after any change to the map or `level.json`.
+That writes `dist/gauntlet.zip` — about 22 KB. Both scripts produce a byte-identical
+package. Run one again after any change to the map or `level.json`.
 
-There is no script at all on Windows if you would rather not use one: the zip is just
-`override.cfg`, `mod_loader.gd`, `dist/INSTALL.md` and your own folder from `mods/`.
-Select those four, right-click, Send to -> Compressed folder.
+The zip is the loader, the editor, the installers, `dist/INSTALL.md`, a cheats-free
+`override.cfg`, and one folder from `mods/`:
+
+    INSTALL.md      install.bat      install.ps1     install.sh
+    uninstall.bat   mod_loader.gd    editor.gd       override.cfg
+    mods/<your map>/
+
+You can assemble that by hand if you would rather — select them, right-click, Send to
+-> Compressed folder — but mind the two things the scripts get right for you below.
 
 The scripts do three things that are easy to get wrong by hand:
 
