@@ -89,13 +89,33 @@ func _read_mods() -> void:
 			push_error("[mods] %s: missing or malformed level.json" % dir_name)
 			continue
 		var name: String = cfg.get("name", dir_name)
-		_levels.append({"name": name, "data": _build_level(base, cfg)})
+		_levels.append({"name": name, "dir": base, "data": _build_level(base, cfg)})
 		print("[mods] loaded '%s'" % name)
 
 
+## Re-read the mods from disk and hand them over. Used by the map editor, which is a
+## separate autoload so that players never carry it.
+func map_list() -> Array[Dictionary]:
+	_read_mods()
+	return _levels
+
+
 func _build_level(base: String, cfg: Dictionary) -> LevelData:
-	var img := Image.load_from_file(base + "/" + cfg.get("map", "map.png"))
-	img.convert(Image.FORMAT_RGBA8)
+	var map_path: String = base + "/" + cfg.get("map", "map.png")
+	var img: Image
+	if FileAccess.file_exists(map_path):
+		img = Image.load_from_file(map_path)
+		img.convert(Image.FORMAT_RGBA8)
+	else:
+		# a new map, not yet painted: a walled box at the requested size
+		var wh: Array = cfg.get("map_size", [128, 128])
+		img = Image.create(int(wh[0]), int(wh[1]), false, Image.FORMAT_RGBA8)
+		img.fill(Color(0, 0, 0, 0))
+		for i in 4:
+			img.fill_rect(Rect2i(i, i, img.get_width() - i * 2, 1), Color(0, 0, 1, 1))
+			img.fill_rect(Rect2i(i, img.get_height() - 1 - i, img.get_width() - i * 2, 1), Color(0, 0, 1, 1))
+			img.fill_rect(Rect2i(i, i, 1, img.get_height() - i * 2), Color(0, 0, 1, 1))
+			img.fill_rect(Rect2i(img.get_width() - 1 - i, i, 1, img.get_height() - i * 2), Color(0, 0, 1, 1))
 
 	var d := LevelData.new()
 	d.map_texture = ImageTexture.create_from_image(img)

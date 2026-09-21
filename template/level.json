@@ -1,0 +1,16 @@
+{
+  "name": "My Map",
+  "map": "map.png",
+  "map_size": [128, 128],
+  "sprite_sheet": "res://levels/sprite_sheet_grass.png",
+  "wall_tiles_count": 1,
+  "ground_tiles_count": 1,
+  "enemy_health_buff": 40.0,
+  "level_bonus_marks": 1000,
+  "marks_upon_survival": 10000,
+  "marks_upon_all_killed": 0,
+  "spawners": [
+    { "position": [-25, 512], "size": [20, 100], "initial_velocity": [50, 0],
+      "waves": [ { "enemy_type": 0, "amount": 20000, "duration": 60.0 } ] }
+  ]
+}

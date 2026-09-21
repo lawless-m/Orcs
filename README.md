@@ -106,6 +106,35 @@ you point it at `user://`; only the tool script's hardcoded destination is the p
 ESC cannot be used as a key here either, because the game handles `ui_cancel` first
 and swallows it.
 
+## Painting maps (F11)
+
+`editor.gd` is a map painter that runs inside the game. It is for map makers, so it is
+not in the player zip; switch it on by uncommenting the `MapEditor` line in
+`override.cfg`.
+
+    F11          open it, or cycle to your next map
+    F10          close it
+    left drag    paint             right drag   erase to open ground
+    1 2 3        ground, rock, base
+    [ ]          brush size
+    Ctrl+Z       undo              Ctrl+S       save the PNG
+    Ctrl+E       copy the stock maps and sheets to user://reference/
+    middle drag  pan               wheel        zoom
+
+You are painting on the game's own renderer, not a mock-up. Stop moving the brush and
+the world rebuilds about 80 ms later -- 29 ms of work for a 192x192 map -- so the rock,
+the tiles and the paths you see are what the battle will draw. A cell grid appears once
+you are zoomed in far enough for it to be legible.
+
+Ctrl+S writes `map.png` back into the map's own folder, and keeps one `map.png.bak`
+from before the first save of each session.
+
+### Starting a new map
+
+Copy `template/` to `mods/<your map>/` and edit the name in `level.json`. There is no
+PNG in the template: the loader makes a blank walled box at `map_size` the first time
+it reads a folder without one, so press F11 and start painting.
+
 ## Cheats / dev menu
 
 The first line of `override.cfg` (before any `[section]`) turns cheats on:
