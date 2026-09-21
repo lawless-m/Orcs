@@ -4,9 +4,9 @@ extends Node
 ## For map makers only. Turn it on by uncommenting the MapEditor autoload in
 ## override.cfg; it is not in the player zip.
 ##
-##   F11          open the painter, or move to your next map (saves first)
+##   F11          open the painter, and close it again
 ##   F5           save and play this map straight away
-##   F10          close it
+##   N            move to your next map, if you have more than one
 ##   left drag    paint          right drag   erase to open ground
 ##   G R B        ground, rock, base
 ##   1 - 9        brush size, in cells across
@@ -26,7 +26,7 @@ const REGEN_DELAY := 0.08
 const LEGEND := """drag paint   right-drag erase   wheel zoom   middle-drag pan
 G ground   R rock   B base   1-9 brush size
 Ctrl+S save   Ctrl+Z undo   Ctrl+E dump stock maps
-F5 save and play   F11 next map (saves)   F10 close"""
+F5 save and play   F11 close"""
 
 var _maps: Array[Dictionary] = []
 var _index := -1
@@ -50,6 +50,8 @@ var _regenerating := false
 var _stroke := 0          # 0 none, 1 painting, 2 erasing
 var _panning := false
 var _open := false
+var _note := ""
+var _note_at := 0
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
@@ -57,11 +59,11 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		return
 	var key := (event as InputEventKey).keycode
 	if key == KEY_F11:
-		_open_next()
+		_toggle()
 	elif not _open:
 		return
-	elif key == KEY_F10:
-		_close()
+	elif key == KEY_N:
+		_next_map()
 	elif key == KEY_F5:
 		_save_and_play()
 	elif key == KEY_G:
@@ -88,13 +90,29 @@ func _unhandled_key_input(event: InputEvent) -> void:
 
 # --- opening and closing -----------------------------------------------------
 
-func _open_next() -> void:
+## F11 opens what you were last working on, and closes it again. Moving to a
+## different map is N, and only means anything if you have more than one.
+func _toggle() -> void:
+	if _open:
+		_close()
+	else:
+		_open_map(maxi(_index, 0))
+
+
+func _next_map() -> void:
+	if _maps.size() < 2:
+		_refresh_hud("only one map in user://mods")
+		return
+	if _dirty:
+		_save()          # moving on should never lose a painting
+	_open_map((_index + 1) % _maps.size())
+
+
+func _open_map(which: int) -> void:
 	var loader := get_node_or_null("/root/ModLoader")
 	if loader == null or not loader.has_method("map_list"):
 		push_error("[editor] no ModLoader, or it predates map_list(); update mod_loader.gd")
 		return
-	if _dirty:
-		_save()          # cycling away should never lose a painting
 	_maps = loader.map_list()
 	if _maps.is_empty():
 		push_error("[editor] no maps under user://mods to edit")
@@ -102,7 +120,7 @@ func _open_next() -> void:
 
 	if _layer == null:
 		_build_overlay()
-	_index = (_index + 1) % _maps.size()
+	_index = clampi(which, 0, _maps.size() - 1)
 	_dir = _maps[_index]["dir"]
 	_undo.clear()
 	_dirty = false
@@ -285,11 +303,17 @@ func _on_draw() -> void:
 func _refresh_hud(note := "") -> void:
 	if _hud == null:
 		return
+	if note != "":
+		_note = note
+		_note_at = Time.get_ticks_msec()
+	elif Time.get_ticks_msec() - _note_at > 3000:
+		_note = ""
 	var names := {GROUND: "ground", ROCK: "rock", BASE: "base"}
 	_hud.text = "%s%s   %dx%d\npaint: %s   brush: %d   %s\n\n%s" % [
 		_maps[_index]["name"], " *" if _dirty else "",
 		_img.get_width(), _img.get_height(),
-		names.get(_paint_with, "?"), _brush, note, LEGEND]
+		names.get(_paint_with, "?"), _brush, _note,
+		LEGEND + ("   N next map (saves)" if _maps.size() > 1 else "")]
 
 
 # --- undo, save, reference ---------------------------------------------------
