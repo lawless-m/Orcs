@@ -7,6 +7,7 @@ extends Node
 ##   F11          open the painter, and close it again
 ##   F5           save and play this map straight away
 ##   N            move to your next map, if you have more than one
+##   Ctrl+N       start a new map
 ##   left drag    paint          right drag   erase to open ground
 ##   G R B        ground, rock, base
 ##   1 - 9        brush size, in cells across
@@ -17,15 +18,28 @@ extends Node
 ## The view is the game's own renderer, rebuilt shortly after you stop painting
 ## -- about 30 ms for a 192x192 map -- so what you see is what the battle draws.
 
+const MODS_DIR := "user://mods"
 const EDITOR_SCENE := "res://levels/level_1_1/level_1_1.tscn"
 const GROUND := Color(0, 0, 0, 0)
 const ROCK := Color(0, 0, 1, 1)
 const BASE := Color(1, 0, 0, 1)
 const UNDO_MAX := 30
 const REGEN_DELAY := 0.08
+const NEW_MAP := {
+	"name": "New Map", "map": "map.png", "map_size": [128, 128],
+	"sprite_sheet": "res://levels/sprite_sheet_grass.png",
+	"wall_tiles_count": 1, "ground_tiles_count": 1,
+	"enemy_health_buff": 40.0, "level_bonus_marks": 1000,
+	"marks_upon_survival": 10000, "marks_upon_all_killed": 0,
+	"spawners": [{
+		"position": [-25, 512], "size": [20, 100], "initial_velocity": [50, 0],
+		"waves": [{"enemy_type": 0, "amount": 20000, "duration": 60.0}],
+	}],
+}
+
 const LEGEND := """drag paint   right-drag erase   wheel zoom   middle-drag pan
 G ground   R rock   B base   1-9 brush size
-Ctrl+S save   Ctrl+Z undo   Ctrl+E dump stock maps
+Ctrl+S save   Ctrl+Z undo   Ctrl+N new map   Ctrl+E dump stock maps
 F5 save and play   F11 close"""
 
 var _maps: Array[Dictionary] = []
@@ -62,6 +76,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		_toggle()
 	elif not _open:
 		return
+	elif key == KEY_N and (event as InputEventKey).ctrl_pressed:
+		_new_map()
 	elif key == KEY_N:
 		_next_map()
 	elif key == KEY_F5:
@@ -108,7 +124,29 @@ func _next_map() -> void:
 	_open_map((_index + 1) % _maps.size())
 
 
-func _open_map(which: int) -> void:
+## A new map is a folder with a level.json in it. The loader paints a blank
+## walled box for one that has no PNG yet, so there is something to start on.
+func _new_map() -> void:
+	if _dirty:
+		_save()
+	var n := 2
+	while DirAccess.dir_exists_absolute(MODS_DIR + "/map_%d" % n):
+		n += 1
+	var dir := MODS_DIR + "/map_%d" % n
+	DirAccess.make_dir_recursive_absolute(dir)
+	var cfg := NEW_MAP.duplicate(true)
+	cfg["name"] = "Map %d" % n
+	var f := FileAccess.open(dir + "/level.json", FileAccess.WRITE)
+	if f == null:
+		push_error("[editor] could not create %s" % dir)
+		return
+	f.store_string(JSON.stringify(cfg, "\t"))
+	f.close()
+	_open_map(0, dir)
+	_refresh_hud("new map in %s -- rename it in level.json" % dir)
+
+
+func _open_map(which: int, prefer_dir := "") -> void:
 	var loader := get_node_or_null("/root/ModLoader")
 	if loader == null or not loader.has_method("map_list"):
 		push_error("[editor] no ModLoader, or it predates map_list(); update mod_loader.gd")
@@ -121,6 +159,11 @@ func _open_map(which: int) -> void:
 	if _layer == null:
 		_build_overlay()
 	_index = clampi(which, 0, _maps.size() - 1)
+	if prefer_dir != "":
+		for i in _maps.size():
+			if _maps[i]["dir"] == prefer_dir:
+				_index = i
+				break
 	_dir = _maps[_index]["dir"]
 	_undo.clear()
 	_dirty = false

@@ -112,11 +112,12 @@ and swallows it.
 not in the player zip; switch it on by uncommenting the `MapEditor` line in
 `override.cfg`.
 
-    F11          open it, or cycle to your next map
-    F10          close it
+    F11          open the painter, and close it again
+    F5           save and play this map straight away
     left drag    paint             right drag   erase to open ground
-    1 2 3        ground, rock, base
-    [ ]          brush size
+    G R B        ground, rock, base
+    1 - 9        brush size, in cells across
+    Ctrl+N       start a new map   N            move to your next map
     Ctrl+Z       undo              Ctrl+S       save the PNG
     Ctrl+E       copy the stock maps and sheets to user://reference/
     middle drag  pan               wheel        zoom
@@ -131,9 +132,14 @@ from before the first save of each session.
 
 ### Starting a new map
 
-Copy `template/` to `mods/<your map>/` and edit the name in `level.json`. There is no
-PNG in the template: the loader makes a blank walled box at `map_size` the first time
-it reads a folder without one, so press F11 and start painting.
+**Ctrl+N.** It makes `mods/map_2/` with a `level.json`, opens it as a blank walled box
+and registers it in the level list straight away. Rename it by editing `name` in that
+`level.json`, and change `map_size` there before you paint if you want it bigger or
+smaller than 128x128.
+
+`template/` holds the same `level.json` for anyone who would rather set a map up from
+outside the game: copy it to `mods/<your map>/`. There is no PNG in either case -- the
+loader makes the blank box the first time it reads a folder without one.
 
 ## Cheats / dev menu
 
