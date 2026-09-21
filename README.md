@@ -114,11 +114,17 @@ not in the player zip; switch it on by uncommenting the `MapEditor` line in
 
     F11          open the painter, and close it again
     F5           save and play this map straight away
-    left drag    paint             right drag   erase to open ground
-    G R B        ground, rock, base
+
+    G R B        paint ground, rock or base
     1 - 9        brush size, in cells across
-    Ctrl+N       start a new map   N            move to your next map
-    Ctrl+Z       undo              Ctrl+S       save the PNG
+    left drag    paint             right drag   erase to open ground
+
+    S            place spawn points instead of painting; G, R or B comes back
+                 click to place, drag to move, right-click to remove
+
+    Ctrl+S       save              Ctrl+Z       undo
+    Ctrl+N       start a new map   Ctrl+T       rename this map
+    N            move to your next map
     Ctrl+E       copy the stock maps and sheets to user://reference/
     middle drag  pan               wheel        zoom
 
@@ -127,8 +133,16 @@ the world rebuilds about 80 ms later -- 29 ms of work for a 192x192 map -- so th
 the tiles and the paths you see are what the battle will draw. A cell grid appears once
 you are zoomed in far enough for it to be legible.
 
-Ctrl+S writes `map.png` back into the map's own folder, and keeps one `map.png.bak`
-from before the first save of each session.
+Spawn points are drawn in both modes, with an arrow for the direction the orcs enter;
+a new one faces the middle of the map so there is no velocity to work out by hand.
+
+Ctrl+S writes `map.png` and `level.json` back into the map's own folder -- the image
+holds the ground, the JSON holds the spawn points and the name -- and keeps one
+`map.png.bak` from before the first save of each session.
+
+A map with no base is not broken, but it has no lose condition: the orcs pour in and
+mill about with nothing to walk to. The HUD says so rather than letting you find out
+in a battle.
 
 ### Starting a new map
 
