@@ -133,7 +133,8 @@ place; by hand, it is the `MapEditor` line in `override.cfg`.
 
     Ctrl+S       save              Ctrl+Z       undo
     Ctrl+N       start a new map   Ctrl+T       rename this map
-    Ctrl+O       total orcs, shared out between the spawn points
+    Ctrl+O       total orcs, shared out between the spawn points ("12k" works)
+    Ctrl+H       how tough each orc is    Ctrl+D   seconds for them all to arrive
     N            move to your next map
     Ctrl+E       copy the stock maps and sheets to user://reference/
     middle drag  pan               wheel        zoom

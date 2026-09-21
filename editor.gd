@@ -9,7 +9,9 @@ extends Node
 ##   N            move to your next map, if you have more than one
 ##   Ctrl+N       start a new map
 ##   Ctrl+T       rename this map
-##   Ctrl+O       how many orcs altogether
+##   Ctrl+O       how many orcs altogether (12000, or 12k)
+##   Ctrl+H       how tough each orc is
+##   Ctrl+D       how many seconds they take to arrive
 ##   left drag    paint          right drag   erase to open ground
 ##   S            switch between painting and placing spawn points
 ##   G R B        ground, rock, base
@@ -42,7 +44,8 @@ const NEW_MAP := {
 
 const LEGEND := """drag paint   right-drag erase   wheel zoom   middle-drag pan
 G ground   R rock   B base   1-9 brush size   S spawn points
-Ctrl+S save   Ctrl+Z undo   Ctrl+N new map   Ctrl+T rename   Ctrl+O orc count
+Ctrl+O orcs   Ctrl+H toughness   Ctrl+D seconds   Ctrl+T rename
+Ctrl+S save   Ctrl+Z undo   Ctrl+N new map   Ctrl+E dump stock
 F5 save and play   F11 close"""
 
 var _maps: Array[Dictionary] = []
@@ -88,6 +91,12 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		_ask("name", _maps[_index]["name"], "what should this map be called?")
 	elif key == KEY_O and (event as InputEventKey).ctrl_pressed:
 		_ask("orcs", str(_total_orcs()), "how many orcs altogether?")
+	elif key == KEY_H and (event as InputEventKey).ctrl_pressed:
+		_ask("buff", str(_data().enemy_health_buff),
+			"how tough is each orc? (the game's last level uses 97.7)")
+	elif key == KEY_D and (event as InputEventKey).ctrl_pressed:
+		_ask("secs", str(_spawn_seconds()),
+			"how many seconds do they take to all arrive?")
 	elif key == KEY_S and not (event as InputEventKey).ctrl_pressed:
 		_spawner_mode = not _spawner_mode
 	elif key == KEY_N and (event as InputEventKey).ctrl_pressed:
@@ -489,10 +498,12 @@ func _refresh_hud(note := "") -> void:
 	var warn := "   NO BASE -- orcs will have nothing to walk to" if _base_cells == 0 else ""
 	var line2 := "spawn points: %d   click place   drag move   right-click remove" % _spawners().size() \
 		if _spawner_mode else "paint: %s   brush: %d" % [names.get(_paint_with, "?"), _brush]
-	_hud.text = "%s%s   %dx%d   %s orcs\n%s   %s\n\n%s" % [
+	_hud.text = "%s%s   %dx%d   %s orcs over %ss   toughness %s\n%s   %s\n\n%s" % [
 		_maps[_index]["name"], " *" if _dirty else "",
 		_img.get_width(), _img.get_height(),
-		String.num_uint64(_total_orcs()), line2, _note + warn,
+		String.num_uint64(_total_orcs()),
+		String.num(_spawn_seconds(), 0), String.num(_data().enemy_health_buff, 2),
+		line2, _note + warn,
 		LEGEND + ("   N next map (saves)" if _maps.size() > 1 else "")]
 
 
@@ -507,6 +518,34 @@ func _ask(what: String, current: String, label: String) -> void:
 	_name_edit.grab_focus()
 	_name_edit.select_all()
 	_refresh_hud("%s  (Enter to keep it, Esc to leave it alone)" % label)
+
+
+## People write numbers like people: 12k, 1.5k, 120,000, 2m. Returns -1 for
+## anything that is not a number at all.
+func _parse_number(text: String) -> float:
+	var t := text.strip_edges().to_lower().replace(",", "").replace(" ", "")
+	var scale := 1.0
+	if t.ends_with("k"):
+		scale = 1000.0
+		t = t.left(t.length() - 1)
+	elif t.ends_with("m"):
+		scale = 1000000.0
+		t = t.left(t.length() - 1)
+	if t == "" or not t.is_valid_float():
+		return -1.0
+	return maxf(t.to_float() * scale, -1.0)
+
+
+func _data() -> LevelData:
+	return _maps[_index]["data"]
+
+
+func _spawn_seconds() -> float:
+	var longest := 0.0
+	for s in _spawners():
+		for w in s.waves:
+			longest = maxf(longest, w.duration)
+	return longest
 
 
 func _total_orcs() -> int:
@@ -547,6 +586,7 @@ func _rename_input(event: InputEvent) -> void:
 
 func _finish_rename(text: String) -> void:
 	var value := text.strip_edges()
+	var changed := false
 	match _asking:
 		"name":
 			if value != "":
@@ -556,13 +596,35 @@ func _finish_rename(text: String) -> void:
 				if id >= 0 and GameManager.levels.has(id):
 					GameManager.levels[id].name = value   # the level list, straight away
 				_dirty = true
+				changed = true
 		"orcs":
-			if value.is_valid_int() and value.to_int() > 0:
-				_set_total_orcs(value.to_int())
+			var n := _parse_number(value)
+			if n >= 1.0:
+				_set_total_orcs(int(n))
+				changed = true
 			else:
-				_refresh_hud("that is not a number of orcs")
+				_refresh_hud("that is not a number of orcs -- try 12000 or 12k")
+		"buff":
+			var b := _parse_number(value)
+			if b > 0.0:
+				_data().enemy_health_buff = b
+				_maps[_index]["cfg"]["enemy_health_buff"] = b
+				_dirty = true
+				changed = true
+			else:
+				_refresh_hud("toughness has to be a number above zero")
+		"secs":
+			var secs := _parse_number(value)
+			if secs > 0.0:
+				for s in _spawners():
+					for w in s.waves:
+						w.duration = secs
+				_dirty = true
+				changed = true
+			else:
+				_refresh_hud("that is not a number of seconds")
 	_end_rename()
-	if _dirty:
+	if changed:
 		_refresh_hud("changed -- Ctrl+S to keep it")
 
 
@@ -635,6 +697,7 @@ func _save_config() -> void:
 			"waves": waves,
 		})
 	cfg["spawners"] = out
+	cfg["enemy_health_buff"] = _data().enemy_health_buff
 	var f := FileAccess.open(_dir + "/level.json", FileAccess.WRITE)
 	if f == null:
 		push_error("[editor] could not write %s/level.json" % _dir)

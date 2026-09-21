@@ -47,6 +47,8 @@ Press **F11** while the game is running.
     Ctrl+N              start a brand new map
     Ctrl+T              give it a name
     Ctrl+O              how many orcs attack altogether
+    Ctrl+H              how tough each one is
+    Ctrl+D              how many seconds they take to arrive
     Ctrl+S              save it
     Ctrl+Z              undo
     F5                  save it and play it right now
@@ -59,10 +61,23 @@ you can zip that folder up and send it to somebody else.
 Every map needs a bit of **base** painted somewhere, or the orcs will wander in with
 nothing to walk towards. The editor will warn you if you forget.
 
-The number of orcs is shown along the top, and **Ctrl+O** changes it — they are shared
-out evenly between your spawn points. For a sense of scale, the game's own last level
-sends 160,000. How tough each orc is, and how long they take to arrive, are in the
-map's `level.json` file, which you can open in any text editor.
+The top line shows how many orcs attack, over how long, and how tough they are.
+**Ctrl+O**, **Ctrl+D** and **Ctrl+H** change those three. Orcs are shared out evenly
+between your spawn points, and you can type `12k` rather than `12000`.
+
+For a sense of scale, here is the whole game:
+
+| Level | orcs | toughness |
+|-------|-----:|----------:|
+| 1.1   |   400 |   1 |
+| 3.1   |  8,000 |   6 |
+| 4.1   | 40,000 |  16 |
+| 5.2   | 120,000 |  68 |
+| 6.2   | 160,000 |  98 |
+
+The game can handle about 262,000 orcs on screen at once. That is far more than any
+level sends, because they die as fast as they arrive — but a map with no base will
+pile them up until it chokes.
 
 ## Removing it
 
