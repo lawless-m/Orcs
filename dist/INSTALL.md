@@ -52,10 +52,11 @@ tile, 8 world units per pixel:
 
 No anti-aliasing, no soft brushes — the channels are read exactly.
 
+Progress on custom levels is saved like any other — survived, all-orcs-killed, your
+tower layout and the stats all go into your normal save slot.
+
 ## Known limits
 
-- Progress on custom levels is **not saved**. They register after your save loads, so a
-  survival on this map will not be recorded. Your normal campaign saves are unaffected.
 - A game update could change the internals this relies on and stop it working. If that
   happens, uninstall as above.
 - Custom levels run through the game's normal Steam achievement path.

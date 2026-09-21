@@ -121,10 +121,19 @@ appears on each panel in the Levels list — press the one on your own level and
 unlocks directly. The dev menu's currency buttons only grant marks and tokens; they do
 not mark levels as survived.
 
+## Progress
+
+Custom levels save like any other, into the same save slot: survived, all-orcs-killed,
+your tower layout and the per-level stats. The game already writes them; the loader
+restores them, because `GameManager.load_data()` only rebuilds the stock twelve and we
+register afterwards.
+
+Level ids are assigned in sorted folder order after the stock levels, and the save is
+keyed by id — so renaming a folder in a way that reorders it will move progress with
+the id, not with the map.
+
 ## Known limits
 
-- Progress on custom levels is not saved — they are registered after the save is
-  loaded, so their survived/all-killed state is dropped.
 - A game update that reworks `GameManager` may need the loader adjusted.
 - Custom levels go through the normal Steam achievement path.
 

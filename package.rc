@@ -4,7 +4,7 @@
 # Ships a cheats-free override.cfg regardless of what the working copy has, and
 # leaves out reference/, which holds artwork extracted from the game.
 
-here=`{dirname $0}
+here=`{cd `{dirname $0}; pwd}
 name=$1
 if(~ $#name 0) name=orc-map
 
@@ -12,18 +12,18 @@ out=$here/dist/$name^.zip
 stage=$here/dist/.stage
 
 rm -rf $stage
-mkdir -p $stage/mods
-cp $here/mod_loader.gd $stage/
-cp $here/dist/INSTALL.md $stage/
-dircp $here/mods $stage/mods >[2]/dev/null || cp -r $here/mods/* $stage/mods/
+mkdir -p $stage
+cp $here/mod_loader.gd $here/dist/INSTALL.md $stage/
+cp -r $here/mods $stage/mods
 
 # cheats deliberately omitted from the shared copy
-echo '[autoload]' > $stage/override.cfg
-echo '' >> $stage/override.cfg
-echo 'ModLoader="*user://mod_loader.gd"' >> $stage/override.cfg
+{
+	echo '[autoload]'
+	echo ''
+	echo 'ModLoader="*user://mod_loader.gd"'
+} > $stage/override.cfg
 
 rm -f $out
-@{cd $stage && zip -q -r $out .}
+@{cd $stage; zip -q -r $out .}
 rm -rf $stage
 echo $out
-unzip -l $out

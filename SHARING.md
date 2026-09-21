@@ -54,9 +54,10 @@ Be plain about the four things that will otherwise generate complaints:
 1. It is unofficial and unaffiliated with the developers.
 2. The game is never modified — it is a config file beside the executable plus two
    files in the save folder. Uninstalling is deleting three things.
-3. **Progress on custom levels is not saved.** They register after the save loads, so a
-   survival is not recorded. Normal campaign saves are untouched.
-4. A game update could change the internals it relies on and stop it working.
+3. A game update could change the internals it relies on and stop it working.
+
+Progress on custom levels *is* saved, into the player's normal save slot, so that is no
+longer a caveat.
 
 It is also worth saying it is a mod loader, not just one map: any number of folders
 under `mods/` show up in the list, so other people can drop their own maps in beside

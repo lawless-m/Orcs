@@ -46,15 +46,43 @@ func _inject() -> void:
 		_read_mods()
 	if _stock_count < 0:
 		_stock_count = GameManager.levels.size()
+	var saved: Dictionary = {}
+	if SaveSystem.current_save_slot >= 0:
+		saved = SaveSystem.load_save_data(SaveSystem.current_save_slot).get("levels", {})
 	var id := _stock_count
 	for entry in _levels:
 		id += 1
-		GameManager.levels[id] = GameManager.Level.new(entry["name"], entry["data"])
+		var existing = GameManager.levels.get(id)
+		if existing != null and existing.name == entry["name"]:
+			existing.data = entry["data"]   # keep progress, take the edited map
+			continue
+		var level = GameManager.Level.new(entry["name"], entry["data"])
+		_restore(level, saved.get(str(id), {}))
+		GameManager.levels[id] = level
+
+
+## The game saves our levels along with its own, but GameManager.load_data() only
+## rebuilds the stock ones -- we are registered afterwards. Without this the fresh
+## entry overwrites real progress on the next save.
+func _restore(level, saved: Dictionary) -> void:
+	if saved.is_empty():
+		return
+	level.has_survived = saved.get("has_survived", false)
+	level.has_killed_all = saved.get("has_killed_all", false)
+	level.towers.clear()
+	level.towers.append_array(saved.get("towers", []))
+	var stats: Dictionary = saved.get("stats", {})
+	for key in stats:
+		# JSON numbers all arrive as floats; the counters are ints.
+		var current = level.stats.get(key)
+		level.stats.set(key, int(stats[key]) if typeof(current) == TYPE_INT else stats[key])
 
 
 func _read_mods() -> void:
 	_levels.clear()
-	for dir_name in DirAccess.get_directories_at(MODS_DIR):
+	var dirs := DirAccess.get_directories_at(MODS_DIR)
+	dirs.sort()       # ids key the save data, so the order must be stable
+	for dir_name in dirs:
 		var base := "%s/%s" % [MODS_DIR, dir_name]
 		var cfg = JSON.parse_string(FileAccess.get_file_as_string(base + "/level.json"))
 		if cfg == null:
