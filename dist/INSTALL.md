@@ -34,7 +34,7 @@ and orcs coming in from all four sides.
 
 ## Drawing your own maps
 
-Press **F11** while the game is running.
+Press **F11** on the Upgrades screen — the tech tree you see between battles.
 
     F11                 open the editor, and put it away again
     F5                  save this map and play it right now

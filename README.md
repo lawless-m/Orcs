@@ -33,6 +33,9 @@ yours will differ from the shared default.
 
 ## Drawing maps — F11
 
+Press F11 on the Upgrades screen, the tech tree between battles. A save has to be
+loaded, because that is when the level list exists for a map to be added to.
+
     F11          open the painter, and close it again
     F5           save and play this map right now
     N            move to your next map
@@ -154,8 +157,12 @@ marks and tokens; they do not mark a level survived.
 
 ## Progress
 
-Custom levels save like any other, into the same save slot: survived, all-orcs-killed,
-your tower layout and the per-level stats. The game already wrote them; what was
+A map is not tied to a save. It is read from `user://mods` and added to whichever save
+you load, so starting a new game gives you the same maps with clean progress on them --
+locked again until you survive Level 6.2, or unlocked with cheats.
+
+Progress on a custom level is saved like any other, into that save slot: survived,
+all-orcs-killed, your tower layout and the per-level stats. The game already wrote them; what was
 missing was reading them back, because `GameManager.load_data()` rebuilds only the
 stock twelve and we register afterwards.
 

@@ -199,6 +199,10 @@ func _open_map(which: int, prefer_dir := "") -> void:
 	if loader == null or not loader.has_method("map_list"):
 		push_error("[editor] no ModLoader, or it predates map_list(); update mod_loader.gd")
 		return
+	if GameManager.levels.is_empty():
+		# No save loaded yet, so a map cannot be registered or played from here.
+		push_error("[editor] open a save first, then press F11 on the Upgrades screen")
+		return
 	_maps = loader.map_list()
 	if _maps.is_empty():
 		push_error("[editor] no maps under user://mods to edit")
