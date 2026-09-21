@@ -89,6 +89,8 @@ var _note := ""
 var _spawner_mode := false
 var _drag_spawner = null
 var _name_edit: LineEdit
+var _prompt: PanelContainer
+var _prompt_label: Label
 var _asking := ""          # which value the text box is collecting
 var _base_cells := -1
 var _note_at := 0
@@ -273,22 +275,32 @@ func _build_overlay() -> void:
 	_canvas.draw.connect(_on_draw)
 	_layer.add_child(_canvas)
 
-	# A LineEdit rather than collecting keystrokes by hand: it brings a cursor,
-	# selection and IME with it, and while it has focus the paint keys cannot leak.
-	_name_edit = LineEdit.new()
-	_name_edit.visible = false
-	_name_edit.position = Vector2(12, 8)
-	_name_edit.custom_minimum_size = Vector2(380, 0)
-	_name_edit.size = Vector2(380, 34)
-	_name_edit.text_submitted.connect(_finish_rename)
-	_name_edit.gui_input.connect(_rename_input)
-	_layer.add_child(_name_edit)
-
 	_hud = Label.new()
 	_hud.position = Vector2(12, 8)
 	_hud.add_theme_color_override("font_outline_color", Color.BLACK)
 	_hud.add_theme_constant_override("outline_size", 6)
 	_layer.add_child(_hud)
+
+	# Added after the HUD so it draws over it, and centred rather than tucked
+	# into the corner where the map's name already is.
+	# A LineEdit rather than collecting keystrokes by hand: it brings a cursor,
+	# selection and IME with it, and while it has focus the paint keys cannot leak.
+	var centre := CenterContainer.new()
+	centre.set_anchors_preset(Control.PRESET_FULL_RECT)
+	centre.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_prompt = PanelContainer.new()
+	_prompt.visible = false
+	var rows := VBoxContainer.new()
+	_prompt_label = Label.new()
+	_name_edit = LineEdit.new()
+	_name_edit.custom_minimum_size = Vector2(440, 0)
+	_name_edit.text_submitted.connect(_finish_rename)
+	_name_edit.gui_input.connect(_rename_input)
+	rows.add_child(_prompt_label)
+	rows.add_child(_name_edit)
+	_prompt.add_child(rows)
+	centre.add_child(_prompt)
+	_layer.add_child(centre)
 
 	_regen = Timer.new()
 	_regen.one_shot = true
@@ -538,11 +550,13 @@ func _refresh_hud(note := "") -> void:
 
 func _ask(what: String, current: String, label: String) -> void:
 	_asking = what
+	_prompt_label.text = "%s\n(Enter to keep it, Esc to leave it alone)" % label
 	_name_edit.text = current
+	_prompt.visible = true
 	_name_edit.visible = true
 	_name_edit.grab_focus()
 	_name_edit.select_all()
-	_refresh_hud("%s  (Enter to keep it, Esc to leave it alone)" % label)
+	_refresh_hud()
 
 
 ## People write numbers like people: 12k, 1.5k, 120,000, 2m. Returns -1 for
@@ -737,8 +751,10 @@ func _finish_rename(text: String) -> void:
 
 
 func _end_rename() -> void:
+	_prompt.visible = false
 	_name_edit.visible = false
 	_name_edit.release_focus()
+	_asking = ""
 
 
 func _push_undo() -> void:
