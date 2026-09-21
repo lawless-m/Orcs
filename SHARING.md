@@ -2,18 +2,26 @@
 
 ## Build the package
 
-    ./package.rc squeers-gauntlet
+    ./package.sh gauntlet          # Linux, macOS, WSL, Git Bash
+    ./package.ps1 gauntlet         # Windows PowerShell
 
-That writes `dist/squeers-gauntlet.zip` — about 12 KB, seven files. Run it again after
-any change to the map or `level.json`.
+That writes `dist/gauntlet.zip` — about 12 KB, seven files. Both scripts produce a
+byte-identical package. Run one again after any change to the map or `level.json`.
 
-The script does two things you must not do by hand and forget:
+There is no script at all on Windows if you would rather not use one: the zip is just
+`override.cfg`, `mod_loader.gd`, `dist/INSTALL.md` and your own folder from `mods/`.
+Select those four, right-click, Send to -> Compressed folder.
 
-- **Ships a cheats-free `override.cfg`.** The repo default has that line commented out
+The scripts do three things that are easy to get wrong by hand:
+
+- **Package only the named map.** `mods/` may hold other people's maps, and shipping
+  someone else's work inside your release is not on.
+
+- **Ship a cheats-free `override.cfg`.** The repo default has that line commented out
   and the packaged config omits it entirely. Handing a stranger a silently
   cheat-enabled game is rude. Your own installed copy is a separate file with the line
   uncommented, so the two never get confused.
-- **Leaves out `reference/`.** Those twelve maps and six sprite sheets were extracted
+- **Leave out `reference/`.** Those twelve maps and six sprite sheets were extracted
   from the game. They are the developers' artwork and are fine as a local working
   reference, but must not be redistributed. Nothing in the zip comes from the game —
   just your map PNG, the loader script and the install guide. `level.json` refers to

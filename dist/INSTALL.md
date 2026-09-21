@@ -1,4 +1,4 @@
-# Squeers' Gauntlet — a custom map for "Sir, We Have an Orc Problem"
+# A custom map for "Sir, We Have an Orc Problem"
 
 An unofficial add-on map. The game has no Workshop support and no mod system, so this
 works by way of a config file Godot reads from next to the game executable. **The game
@@ -21,18 +21,13 @@ itself is never modified** and uninstalling is deleting three things.
 That folder already exists and holds your saves. Do not touch them.
 
 **3. Start the game normally through Steam.** The map appears at the bottom of the
-Levels list, after Level 6.2, and unlocks once you have survived 6.2.
+Levels list, after Level 6.2, under whatever name its `level.json` gives it. It unlocks
+once you have survived 6.2.
 
 ## Uninstall
 
 Delete `override.cfg` from the game folder, and `mod_loader.gd` and `mods` from the
 save folder. Nothing else is altered.
-
-## The map
-
-1536x1536, four spawners — one per edge — sending 120,000 orcs over 90 seconds at an
-80x health buff. Three broken rings guard the base, with the gaps rotated between rings
-so nothing walks straight in. Roughly between Level 5.2 and Level 6.1 in difficulty.
 
 ## Extras
 
@@ -41,7 +36,8 @@ the world, the flow field and the collision polygons, and prints the balance fig
 **F10** closes it. Nothing in the running game is disturbed.
 
 To make your own, add another folder under `mods/` with a `map.png` and a `level.json`
-alongside this one — they all appear in the list. A map is an RGBA PNG, one pixel per
+alongside this one — they all appear in the list. The loader, the tooling and the full
+notes live at <https://github.com/lawless-m/Orcs>. A map is an RGBA PNG, one pixel per
 tile, 8 world units per pixel:
 
 | Pixel                   | Meaning     |
