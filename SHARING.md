@@ -29,7 +29,8 @@ The scripts do three things that are easy to get wrong by hand:
 
 ## What the recipient gets
 
-`INSTALL.md` in the zip covers it for them. The short version:
+The zip carries `install.sh` and `install.ps1`, so for most people it is one command.
+`INSTALL.md` covers both those and the by-hand route. Where things go:
 
 | File | Goes to (Windows) | Goes to (Linux) |
 |---|---|---|

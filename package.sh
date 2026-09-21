@@ -22,8 +22,10 @@ stage=$here/dist/.stage
 
 rm -rf "$stage"
 mkdir -p "$stage/mods" "$here/dist"
-cp "$here/mod_loader.gd" "$here/dist/INSTALL.md" "$stage/"
+cp "$here/mod_loader.gd" "$here/dist/INSTALL.md" \
+   "$here/install.sh" "$here/install.ps1" "$stage/"
 cp -r "$here/mods/$map" "$stage/mods/$map"
+rm -f "$stage/mods/$map"/*.bak
 
 # cheats deliberately omitted from the shared copy
 printf '[autoload]\n\nModLoader="*user://mod_loader.gd"\n' > "$stage/override.cfg"

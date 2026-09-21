@@ -23,7 +23,10 @@ if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
 New-Item -ItemType Directory -Path (Join-Path $stage 'mods') -Force | Out-Null
 Copy-Item (Join-Path $here 'mod_loader.gd')   $stage
 Copy-Item (Join-Path $here 'dist/INSTALL.md') $stage
+Copy-Item (Join-Path $here 'install.sh')  $stage
+Copy-Item (Join-Path $here 'install.ps1') $stage
 Copy-Item (Join-Path $here "mods/$Map") (Join-Path $stage "mods/$Map") -Recurse
+Get-ChildItem (Join-Path $stage "mods/$Map") -Filter *.bak | Remove-Item -Force
 
 # cheats deliberately omitted from the shared copy.
 # Written through .NET so the encoding does not depend on the PowerShell

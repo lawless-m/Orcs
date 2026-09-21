@@ -4,7 +4,26 @@ An unofficial add-on map. The game has no Workshop support and no mod system, so
 works by way of a config file Godot reads from next to the game executable. **The game
 itself is never modified** and uninstalling is deleting three things.
 
-## Install
+## Install, the easy way
+
+**Windows** -- open PowerShell in this folder and run:
+
+    powershell -ExecutionPolicy Bypass -File install.ps1
+
+The `-ExecutionPolicy` part is needed because Windows blocks scripts it has
+downloaded. Add `-Cheats` if you would rather not replay the campaign to reach the map:
+it turns on the game's own dev menu and puts an Unlock button on every level.
+
+**Linux or macOS** -- open a terminal in this folder and run:
+
+    ./install.sh
+
+It finds the game through Steam, copies three things into place, and never replaces a
+map you already have. `--uninstall` (or `-Uninstall`) takes it all back out and leaves
+your maps and saves alone. If it cannot find the game, pass the folder yourself:
+Steam, right-click the game, Manage, Browse local files.
+
+## Install, by hand
 
 **1. Copy `override.cfg`** into the folder holding the game executable:
 

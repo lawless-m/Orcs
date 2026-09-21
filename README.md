@@ -7,7 +7,15 @@ folder is patched except one small text file.
 
 ## Install
 
-Copy `override.cfg` next to the game binary:
+    ./install.sh --editor --cheats          # Linux, macOS
+    powershell -ExecutionPolicy Bypass -File install.ps1 -Editor -Cheats
+
+The installers find the game through Steam -- every library, not just the default --
+put the three files in place, and never replace a map you already have. `--uninstall`
+takes it back out and leaves your maps and saves alone. If the game cannot be found,
+pass the folder with `--game-path` / `-GamePath`.
+
+To do it by hand instead, copy `override.cfg` next to the game binary:
 
     ~/.local/share/Steam/steamapps/common/Sir, We Have an Orc Problem/
 
