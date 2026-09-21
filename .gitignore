@@ -3,3 +3,6 @@
 reference/
 
 dist/.stage/
+
+# editor safety copies, local only
+*.png.bak
