@@ -4,7 +4,8 @@ extends Node
 ## For map makers only. Turn it on by uncommenting the MapEditor autoload in
 ## override.cfg; it is not in the player zip.
 ##
-##   F11          open the painter, or cycle to your next map
+##   F11          open the painter, or move to your next map (saves first)
+##   F5           save and play this map straight away
 ##   F10          close it
 ##   left drag    paint          right drag   erase to open ground
 ##   1 2 3        ground, rock, base
@@ -22,6 +23,10 @@ const ROCK := Color(0, 0, 1, 1)
 const BASE := Color(1, 0, 0, 1)
 const UNDO_MAX := 30
 const REGEN_DELAY := 0.08
+const LEGEND := """drag paint   right-drag erase   wheel zoom   middle-drag pan
+1 ground   2 rock   3 base   [ ] brush
+Ctrl+S save   Ctrl+Z undo   Ctrl+E dump stock maps
+F5 save and play   F11 next map (saves)   F10 close"""
 
 var _maps: Array[Dictionary] = []
 var _index := -1
@@ -57,6 +62,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		return
 	elif key == KEY_F10:
 		_close()
+	elif key == KEY_F5:
+		_save_and_play()
 	elif key == KEY_1:
 		_paint_with = GROUND
 	elif key == KEY_2:
@@ -86,8 +93,8 @@ func _open_next() -> void:
 	if loader == null or not loader.has_method("map_list"):
 		push_error("[editor] no ModLoader, or it predates map_list(); update mod_loader.gd")
 		return
-	if _dirty and not _confirm_discard():
-		return
+	if _dirty:
+		_save()          # cycling away should never lose a painting
 	_maps = loader.map_list()
 	if _maps.is_empty():
 		push_error("[editor] no maps under user://mods to edit")
@@ -279,10 +286,10 @@ func _refresh_hud(note := "") -> void:
 	if _hud == null:
 		return
 	var names := {GROUND: "ground", ROCK: "rock", BASE: "base"}
-	_hud.text = "%s%s   %dx%d\npaint: %s   brush: %d   %s" % [
+	_hud.text = "%s%s   %dx%d\npaint: %s   brush: %d   %s\n\n%s" % [
 		_maps[_index]["name"], " *" if _dirty else "",
 		_img.get_width(), _img.get_height(),
-		names.get(_paint_with, "?"), _brush * 2 - 1, note]
+		names.get(_paint_with, "?"), _brush * 2 - 1, note, LEGEND]
 
 
 # --- undo, save, reference ---------------------------------------------------
@@ -300,6 +307,19 @@ func _undo_once() -> void:
 	_tex.update(_img)
 	_regen.start()
 	_canvas.queue_redraw()
+
+
+## The whole point of the loop: edit, F5, fight it, come back. Edits are already
+## live in the registered level, so this saves first and then drops into the battle.
+func _save_and_play() -> void:
+	var id: int = _maps[_index].get("id", -1)
+	if id < 0:
+		push_error("[editor] this map is not registered yet; open the Levels list once")
+		return
+	if _dirty:
+		_save()
+	_close()
+	GameManager.load_level(id)
 
 
 func _save() -> void:
@@ -332,10 +352,3 @@ func _dump_reference() -> void:
 			"user://reference/%s" % d.sprite_sheet_texture.resource_path.get_file())
 		n += 1
 	_refresh_hud("wrote %d maps to user://reference" % n)
-
-
-func _confirm_discard() -> bool:
-	# No dialogs in here; refuse once and let a second F11 through.
-	_refresh_hud("unsaved changes -- Ctrl+S to keep them, F11 again to discard")
-	_dirty = false
-	return false

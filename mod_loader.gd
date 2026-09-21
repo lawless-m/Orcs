@@ -52,6 +52,7 @@ func _inject() -> void:
 	var id := _stock_count
 	for entry in _levels:
 		id += 1
+		entry["id"] = id
 		var existing = GameManager.levels.get(id)
 		if existing != null and existing.name == entry["name"]:
 			existing.data = entry["data"]   # keep progress, take the edited map
@@ -97,6 +98,8 @@ func _read_mods() -> void:
 ## separate autoload so that players never carry it.
 func map_list() -> Array[Dictionary]:
 	_read_mods()
+	if _stock_count >= 0:
+		_inject()      # otherwise a battle would still use the pre-edit map
 	return _levels
 
 
