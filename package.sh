@@ -22,8 +22,8 @@ stage=$here/dist/.stage
 
 rm -rf "$stage"
 mkdir -p "$stage/mods" "$here/dist"
-cp "$here/mod_loader.gd" "$here/dist/INSTALL.md" \
-   "$here/install.sh" "$here/install.ps1" "$stage/"
+cp "$here/mod_loader.gd" "$here/editor.gd" "$here/dist/INSTALL.md" \
+   "$here/install.sh" "$here/install.ps1" "$here/install.bat" "$here/uninstall.bat" "$stage/"
 cp -r "$here/mods/$map" "$stage/mods/$map"
 rm -f "$stage/mods/$map"/*.bak
 

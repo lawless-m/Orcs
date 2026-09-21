@@ -1,78 +1,73 @@
 # A custom map for "Sir, We Have an Orc Problem"
 
-An unofficial add-on map. The game has no Workshop support and no mod system, so this
-works by way of a config file Godot reads from next to the game executable. **The game
-itself is never modified** and uninstalling is deleting three things.
+An extra level, and a map editor if you want to draw your own.
 
-## Install, the easy way
+This is not official, and it is not made by the people who made the game. It does not
+change the game itself — it puts three small files next to it, and you can take them
+away again whenever you like. Your saves are not touched.
 
-**Windows** -- open PowerShell in this folder and run:
+## Installing on Windows
 
-    powershell -ExecutionPolicy Bypass -File install.ps1
+1. Unzip this folder somewhere, if you have not already.
+2. Double-click **install.bat**.
+3. It asks you two questions. Answer them, and it does the rest.
 
-The `-ExecutionPolicy` part is needed because Windows blocks scripts it has
-downloaded. Add `-Cheats` if you would rather not replay the campaign to reach the map:
-it turns on the game's own dev menu and puts an Unlock button on every level.
+    - *Do you want the map editor too?* — say yes if you fancy drawing your own maps.
+    - *Unlock the new map now?* — the map normally appears after you have beaten
+      Level 6.2. Say yes to play it straight away.
 
-**Linux or macOS** -- open a terminal in this folder and run:
+4. Start the game through Steam as usual.
 
-    ./install.sh
+If Windows says it cannot find the game, it will tell you what to do: in Steam,
+right-click the game, choose Manage, then Browse local files. Copy the address of the
+folder it opens, and run `install.bat` again — it will ask for it.
 
-It finds the game through Steam, copies three things into place, and never replaces a
-map you already have. `--uninstall` (or `-Uninstall`) takes it all back out and leaves
-your maps and saves alone. If it cannot find the game, pass the folder yourself:
-Steam, right-click the game, Manage, Browse local files.
+## Installing on Linux
 
-## Install, by hand
+Open a terminal in this folder and run one of:
 
-**1. Copy `override.cfg`** into the folder holding the game executable:
+    ./install.sh                     just the map
+    ./install.sh --editor --cheats   the map editor too, and unlock it now
 
-- Windows: `...\Steam\steamapps\common\Sir, We Have an Orc Problem\`
-  (Steam → right-click the game → Manage → Browse local files)
-- Linux: `~/.local/share/Steam/steamapps/common/Sir, We Have an Orc Problem/`
+## Playing it
 
-**2. Copy `mod_loader.gd` and the `mods` folder** into the game's save folder:
+The map is at the bottom of the **Levels** list, after Level 6.2. It is called
+Squeers' Gauntlet: a big square arena with three broken rings of rock around your base,
+and orcs coming in from all four sides.
 
-- Windows: `%APPDATA%\Sir, We Have an Orc Problem\`
-  (paste that into the Explorer address bar)
-- Linux: `~/.local/share/Sir, We Have an Orc Problem/`
+## Drawing your own maps
 
-That folder already exists and holds your saves. Do not touch them.
+If you installed the editor, press **F11** while the game is running.
 
-**3. Start the game normally through Steam.** The map appears at the bottom of the
-Levels list, after Level 6.2, under whatever name its `level.json` gives it. It unlocks
-once you have survived 6.2.
+    click and drag      paint
+    right-click drag    rub out
+    G                   ground, the bit orcs walk on
+    R                   rock, which they cannot walk through
+    B                   your base, the bit they are trying to reach
+    1 to 9              how big the brush is
+    S                   place the points orcs come in from
+                        (click to add, drag to move, right-click to remove)
+    Ctrl+N              start a brand new map
+    Ctrl+T              give it a name
+    Ctrl+S              save it
+    Ctrl+Z              undo
+    F5                  save it and play it right now
+    F11                 put the editor away
 
-## Uninstall
+You are drawing straight onto the game's own picture of the map, so what you see is
+what you get when you play it. Your maps are saved in the same folder as this one, and
+you can zip that folder up and send it to somebody else.
 
-Delete `override.cfg` from the game folder, and `mod_loader.gd` and `mods` from the
-save folder. Nothing else is altered.
+Every map needs a bit of **base** painted somewhere, or the orcs will wander in with
+nothing to walk towards. The editor will warn you if you forget.
 
-## Extras
+## Removing it
 
-Press **F9** in game to open the developers' own level preview on the map: it renders
-the world, the flow field and the collision polygons, and prints the balance figures.
-**F10** closes it. Nothing in the running game is disturbed.
+Double-click **uninstall.bat** on Windows, or run `./install.sh --uninstall` on Linux.
+Your maps and your saves are left where they are.
 
-To make your own, add another folder under `mods/` with a `map.png` and a `level.json`
-alongside this one — they all appear in the list. The loader, the tooling and the full
-notes live at <https://github.com/lawless-m/Orcs>. A map is an RGBA PNG, one pixel per
-tile, 8 world units per pixel:
+## The small print
 
-| Pixel                   | Meaning     |
-|-------------------------|-------------|
-| transparent `(0,0,0,0)` | open ground |
-| blue `(0,0,255,255)`    | solid rock  |
-| red `(255,0,0,255)`     | the base    |
-
-No anti-aliasing, no soft brushes — the channels are read exactly.
-
-Progress on custom levels is saved like any other — survived, all-orcs-killed, your
-tower layout and the stats all go into your normal save slot.
-
-## Known limits
-
-- A game update could change the internals this relies on and stop it working. If that
-  happens, uninstall as above.
-- Custom levels run through the game's normal Steam achievement path.
-- Unofficial and unaffiliated with the developers. Use at your own discretion.
+- A future update to the game could stop this working. If that happens, remove it.
+- The maps you make are yours. Nothing belonging to the game is included here.
+- Made with the loader and editor at <https://github.com/lawless-m/Orcs>.

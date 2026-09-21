@@ -1,8 +1,8 @@
 extends Node
 ## In-game map painter for "Sir, We Have an Orc Problem".
 ##
-## For map makers only. Turn it on by uncommenting the MapEditor autoload in
-## override.cfg; it is not in the player zip.
+## Turn it on with --editor / -Editor at install time, or by uncommenting the
+## MapEditor autoload in override.cfg. Players who do neither never load it.
 ##
 ##   F11          open the painter, and close it again
 ##   F5           save and play this map straight away

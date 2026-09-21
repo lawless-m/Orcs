@@ -7,10 +7,11 @@ folder is patched except one small text file.
 
 ## Install
 
-    ./install.sh --editor --cheats          # Linux, macOS
-    powershell -ExecutionPolicy Bypass -File install.ps1 -Editor -Cheats
+    install.bat                             # Windows -- double-click it
+    ./install.sh --editor --cheats          # Linux
 
-The installers find the game through Steam -- every library, not just the default --
+`install.bat` asks two plain questions and calls `install.ps1`, which is also there
+for anyone who wants the switches. The installers find the game through Steam -- every library, not just the default --
 put the three files in place, and never replace a map you already have. `--uninstall`
 takes it back out and leaves your maps and saves alone. If the game cannot be found,
 pass the folder with `--game-path` / `-GamePath`.
@@ -116,9 +117,9 @@ and swallows it.
 
 ## Painting maps (F11)
 
-`editor.gd` is a map painter that runs inside the game. It is for map makers, so it is
-not in the player zip; switch it on by uncommenting the `MapEditor` line in
-`override.cfg`.
+`editor.gd` is a map painter that runs inside the game. Install with `--editor` /
+`-Editor`, or uncomment the `MapEditor` line in `override.cfg`. Anyone who does
+neither never loads it.
 
     F11          open the painter, and close it again
     F5           save and play this map straight away

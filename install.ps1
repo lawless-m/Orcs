@@ -1,6 +1,7 @@
 # Install the custom-map loader for "Sir, We Have an Orc Problem".
 #
-#   powershell -ExecutionPolicy Bypass -File install.ps1
+# Most people should just double-click install.bat instead of running this.
+#
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -Editor -Cheats
 #   powershell -ExecutionPolicy Bypass -File install.ps1 -Uninstall
 #
@@ -11,8 +12,19 @@ param(
     [string]$GamePath,     # skip the search and use this folder
     [switch]$Editor,       # also install the map painter (F11)
     [switch]$Cheats,       # dev menu, and an Unlock button on every level
-    [switch]$Uninstall
+    [switch]$Uninstall,
+    [switch]$Interactive   # ask instead; this is what install.bat uses
 )
+
+if ($Interactive) {
+    Write-Output ''
+    Write-Output 'Custom maps for "Sir, We Have an Orc Problem".'
+    Write-Output 'Nothing belonging to the game is changed, and you can undo all of this later.'
+    Write-Output ''
+    $Editor = (Read-Host 'Do you want the map editor too, so you can draw your own maps? [y/N]') -match '^\s*[Yy]'
+    $Cheats = (Read-Host 'Unlock the new map now, instead of finishing the game first? [y/N]') -match '^\s*[Yy]'
+    Write-Output ''
+}
 
 $ErrorActionPreference = 'Stop'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
