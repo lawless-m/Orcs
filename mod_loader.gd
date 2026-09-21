@@ -90,7 +90,8 @@ func _read_mods() -> void:
 			push_error("[mods] %s: missing or malformed level.json" % dir_name)
 			continue
 		var name: String = cfg.get("name", dir_name)
-		_levels.append({"name": name, "dir": base, "data": _build_level(base, cfg)})
+		_levels.append({"name": name, "dir": base, "cfg": cfg,
+			"data": _build_level(base, cfg)})
 		print("[mods] loaded '%s'" % name)
 
 

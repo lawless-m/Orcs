@@ -8,7 +8,9 @@ extends Node
 ##   F5           save and play this map straight away
 ##   N            move to your next map, if you have more than one
 ##   Ctrl+N       start a new map
+##   Ctrl+T       rename this map
 ##   left drag    paint          right drag   erase to open ground
+##   S            switch between painting and placing spawn points
 ##   G R B        ground, rock, base
 ##   1 - 9        brush size, in cells across
 ##   Ctrl+Z       undo           Ctrl+S       save the PNG
@@ -38,8 +40,8 @@ const NEW_MAP := {
 }
 
 const LEGEND := """drag paint   right-drag erase   wheel zoom   middle-drag pan
-G ground   R rock   B base   1-9 brush size
-Ctrl+S save   Ctrl+Z undo   Ctrl+N new map   Ctrl+E dump stock maps
+G ground   R rock   B base   1-9 brush size   S spawn points
+Ctrl+S save   Ctrl+Z undo   Ctrl+N new map   Ctrl+T rename   Ctrl+E dump stock
 F5 save and play   F11 close"""
 
 var _maps: Array[Dictionary] = []
@@ -65,6 +67,9 @@ var _stroke := 0          # 0 none, 1 painting, 2 erasing
 var _panning := false
 var _open := false
 var _note := ""
+var _spawner_mode := false
+var _drag_spawner = null
+var _name_edit: LineEdit
 var _note_at := 0
 
 
@@ -76,6 +81,10 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		_toggle()
 	elif not _open:
 		return
+	elif key == KEY_T and (event as InputEventKey).ctrl_pressed:
+		_begin_rename()
+	elif key == KEY_S and not (event as InputEventKey).ctrl_pressed:
+		_spawner_mode = not _spawner_mode
 	elif key == KEY_N and (event as InputEventKey).ctrl_pressed:
 		_new_map()
 	elif key == KEY_N:
@@ -224,6 +233,17 @@ func _build_overlay() -> void:
 	_canvas.draw.connect(_on_draw)
 	_layer.add_child(_canvas)
 
+	# A LineEdit rather than collecting keystrokes by hand: it brings a cursor,
+	# selection and IME with it, and while it has focus the paint keys cannot leak.
+	_name_edit = LineEdit.new()
+	_name_edit.visible = false
+	_name_edit.position = Vector2(12, 8)
+	_name_edit.custom_minimum_size = Vector2(380, 0)
+	_name_edit.size = Vector2(380, 34)
+	_name_edit.text_submitted.connect(_finish_rename)
+	_name_edit.gui_input.connect(_rename_input)
+	_layer.add_child(_name_edit)
+
 	_hud = Label.new()
 	_hud.position = Vector2(12, 8)
 	_hud.add_theme_color_override("font_outline_color", Color.BLACK)
@@ -250,6 +270,19 @@ func _fit_zoom() -> float:
 func _on_gui_input(event: InputEvent) -> void:
 	if not _open:
 		return
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_MIDDLE:
+		_panning = event.pressed
+		return
+	if event is InputEventMouseButton and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
+		_zoom_at(event.position, 1.1 if event.button_index == MOUSE_BUTTON_WHEEL_UP else 1.0 / 1.1)
+		return
+	if _panning and event is InputEventMouseMotion:
+		_cam.position -= event.relative / _cam.zoom
+		_canvas.queue_redraw()
+		return
+	if _spawner_mode:
+		_spawner_input(event)
+		return
 	if event is InputEventMouseButton:
 		match event.button_index:
 			MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT:
@@ -260,16 +293,8 @@ func _on_gui_input(event: InputEvent) -> void:
 				else:
 					_stroke = 0
 					_regen.start()
-			MOUSE_BUTTON_MIDDLE:
-				_panning = event.pressed
-			MOUSE_BUTTON_WHEEL_UP:
-				_zoom_at(event.position, 1.1)
-			MOUSE_BUTTON_WHEEL_DOWN:
-				_zoom_at(event.position, 1.0 / 1.1)
 	elif event is InputEventMouseMotion:
-		if _panning:
-			_cam.position -= event.relative / _cam.zoom
-		elif _stroke != 0:
+		if _stroke != 0:
 			_stamp(event.position)
 		_canvas.queue_redraw()
 
@@ -290,6 +315,77 @@ func _stamp(screen: Vector2) -> void:
 	_refresh_hud()
 
 
+# --- spawn points ------------------------------------------------------------
+#
+# Spawn points live in level.json rather than the PNG, so editing them writes
+# that file as well. They are drawn in both modes: you cannot place an entrance
+# sensibly without seeing where the orcs come in.
+
+func _spawners() -> Array:
+	return (_maps[_index]["data"] as LevelData).spawners
+
+
+func _spawner_at(screen: Vector2):
+	for s in _spawners():
+		var half: Vector2 = (s.shape as RectangleShape2D).size / 2.0
+		var r := Rect2(_world_to_screen(s.position - half), half * 2.0 * _cam.zoom)
+		if r.grow(6.0).has_point(screen):
+			return s
+	return null
+
+
+func _spawner_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton:
+		var hit = _spawner_at(event.position)
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			if event.pressed:
+				if hit == null:
+					_add_spawner(_screen_to_world(event.position))
+				_drag_spawner = hit if hit else _spawners().back()
+			else:
+				_drag_spawner = null
+		elif event.button_index == MOUSE_BUTTON_RIGHT and event.pressed and hit:
+			_spawners().erase(hit)
+			_dirty = true
+			_refresh_hud("spawn point removed")
+	elif event is InputEventMouseMotion and _drag_spawner:
+		_drag_spawner.position = _screen_to_world(event.position)
+		_dirty = true
+	_canvas.queue_redraw()
+	_refresh_hud()
+
+
+## A new spawn point faces the middle of the map, so the orcs walk inwards
+## without you having to work out a velocity by hand.
+func _add_spawner(world: Vector2) -> void:
+	var s := EnemySpawnerData.new()
+	s.position = world
+	var to_centre := Vector2(_img.get_size()) * WorldGen.WORLD_UNITS_PER_PIXEL / 2.0 - world
+	var shape := RectangleShape2D.new()
+	if absf(to_centre.x) > absf(to_centre.y):
+		s.initial_velocity = Vector2(signf(to_centre.x) * 50.0, 0.0)
+		shape.size = Vector2(20, 100)
+	else:
+		s.initial_velocity = Vector2(0.0, signf(to_centre.y) * 50.0)
+		shape.size = Vector2(100, 20)
+	s.shape = shape
+	for w in (_spawners()[0].waves if not _spawners().is_empty() else []):
+		var copy := EnemySpawnWave.new()
+		copy.enemy_type = w.enemy_type
+		copy.amount = w.amount
+		copy.duration = w.duration
+		s.waves.append(copy)
+	if s.waves.is_empty():
+		var w := EnemySpawnWave.new()
+		w.enemy_type = 0
+		w.amount = 20000
+		w.duration = 60.0
+		s.waves.append(w)
+	_spawners().append(s)
+	_dirty = true
+	_refresh_hud("spawn point added")
+
+
 func _regen_now() -> void:
 	if _scene == null or _regenerating:
 		return
@@ -302,9 +398,16 @@ func _regen_now() -> void:
 
 # --- coordinates -------------------------------------------------------------
 
+func _screen_to_world(screen: Vector2) -> Vector2:
+	return _cam.position + (screen - _canvas.size / 2.0) / _cam.zoom
+
+
+func _world_to_screen(world: Vector2) -> Vector2:
+	return (world - _cam.position) * _cam.zoom + _canvas.size / 2.0
+
+
 func _cell_at(screen: Vector2) -> Vector2i:
-	var world: Vector2 = _cam.position + (screen - _canvas.size / 2.0) / _cam.zoom
-	return Vector2i((world / WorldGen.WORLD_UNITS_PER_PIXEL).floor())
+	return Vector2i((_screen_to_world(screen) / WorldGen.WORLD_UNITS_PER_PIXEL).floor())
 
 
 func _cell_to_screen(cell: Vector2i) -> Vector2:
@@ -336,6 +439,17 @@ func _on_draw() -> void:
 			var a := _cell_to_screen(Vector2i(0, y))
 			_canvas.draw_line(a, _cell_to_screen(Vector2i(size.x, y)), grid, 1.0)
 
+	for sp in _spawners():
+		var sz: Vector2 = (sp.shape as RectangleShape2D).size
+		var r := Rect2(_world_to_screen(sp.position - sz / 2.0), sz * _cam.zoom)
+		var col := Color(1.0, 0.45, 0.1, 1.0 if _spawner_mode else 0.5)
+		_canvas.draw_rect(r, col, false, 2.0)
+		var mid := _world_to_screen(sp.position)
+		if sp.initial_velocity.length() > 0.1:
+			_canvas.draw_line(mid, mid + sp.initial_velocity.normalized() * 30.0, col, 2.0)
+
+	if _spawner_mode:
+		return
 	var cell := _cell_at(_canvas.get_local_mouse_position())
 	var half: int = _brush / 2
 	var tl := _cell_to_screen(Vector2i(cell.x - half, cell.y - half))
@@ -352,14 +466,49 @@ func _refresh_hud(note := "") -> void:
 	elif Time.get_ticks_msec() - _note_at > 3000:
 		_note = ""
 	var names := {GROUND: "ground", ROCK: "rock", BASE: "base"}
-	_hud.text = "%s%s   %dx%d\npaint: %s   brush: %d   %s\n\n%s" % [
+	var line2 := "spawn points: %d   click place   drag move   right-click remove" % _spawners().size() \
+		if _spawner_mode else "paint: %s   brush: %d" % [names.get(_paint_with, "?"), _brush]
+	_hud.text = "%s%s   %dx%d\n%s   %s\n\n%s" % [
 		_maps[_index]["name"], " *" if _dirty else "",
-		_img.get_width(), _img.get_height(),
-		names.get(_paint_with, "?"), _brush, _note,
+		_img.get_width(), _img.get_height(), line2, _note,
 		LEGEND + ("   N next map (saves)" if _maps.size() > 1 else "")]
 
 
 # --- undo, save, reference ---------------------------------------------------
+
+# --- the map's name, which lives in level.json beside the spawn points --------
+
+func _begin_rename() -> void:
+	_name_edit.text = _maps[_index]["name"]
+	_name_edit.visible = true
+	_name_edit.grab_focus()
+	_name_edit.select_all()
+	_refresh_hud("type a name, Enter to keep it, Esc to leave it alone")
+
+
+func _rename_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		_end_rename()
+		_name_edit.accept_event()
+
+
+func _finish_rename(text: String) -> void:
+	var name := text.strip_edges()
+	if name != "":
+		_maps[_index]["name"] = name
+		_maps[_index]["cfg"]["name"] = name
+		var id: int = _maps[_index].get("id", -1)
+		if id >= 0 and GameManager.levels.has(id):
+			GameManager.levels[id].name = name     # the level list, straight away
+		_dirty = true
+	_end_rename()
+	_refresh_hud("named -- Ctrl+S to write it to level.json")
+
+
+func _end_rename() -> void:
+	_name_edit.visible = false
+	_name_edit.release_focus()
+
 
 func _push_undo() -> void:
 	_undo.append(_img.duplicate())
@@ -403,8 +552,34 @@ func _save() -> void:
 	if err != OK:
 		push_error("[editor] could not save %s: %s" % [path, error_string(err)])
 		return
+	_save_config()
 	_dirty = false
 	_refresh_hud("saved")
+
+
+## Spawn points are level.json, not the image, so they are written back too.
+func _save_config() -> void:
+	var cfg: Dictionary = _maps[_index]["cfg"]
+	var out := []
+	for s in _spawners():
+		var waves := []
+		for w in s.waves:
+			waves.append({"enemy_type": int(w.enemy_type), "amount": int(w.amount),
+				"duration": w.duration})
+		var sz: Vector2 = (s.shape as RectangleShape2D).size
+		out.append({
+			"position": [s.position.x, s.position.y],
+			"size": [sz.x, sz.y],
+			"initial_velocity": [s.initial_velocity.x, s.initial_velocity.y],
+			"waves": waves,
+		})
+	cfg["spawners"] = out
+	var f := FileAccess.open(_dir + "/level.json", FileAccess.WRITE)
+	if f == null:
+		push_error("[editor] could not write %s/level.json" % _dir)
+		return
+	f.store_string(JSON.stringify(cfg, "\t"))
+	f.close()
 
 
 ## The stock maps make good starting points but are the developers' artwork, so
