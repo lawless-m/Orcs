@@ -9,3 +9,4 @@ dist/.stage/
 
 # dropped by pwsh when it runs in this folder
 StartupProfileData-*
+.devlog/
